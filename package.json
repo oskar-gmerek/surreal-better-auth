@@ -26,6 +26,11 @@
   },
   "license": "MIT",
   "main": "src/index.ts",
+  "files": [
+    "src/index.ts",
+    "README.md",
+    "LICENSE"
+  ],
   "devDependencies": {
     "@types/bun": "^1.1.14"
   },

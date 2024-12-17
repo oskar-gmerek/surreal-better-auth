@@ -9,8 +9,16 @@
   },
   "description": "Better Auth adapter for SurrealDB",
   "keywords": [
+    "adapter",
+    "auth",
+    "authentication",
+    "database",
     "better-auth",
-    "surrealdb"
+    "better-auth-adapter",
+    "surrealdb",
+    "surrealdb-adapter",
+    "surrealdb-auth",
+    "typescript"
   ],
   "repository": {
     "type": "git",

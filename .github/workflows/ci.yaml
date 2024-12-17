@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Tests with SurrealDB
+    runs-on: ubuntu-latest
+
+    services:
+      surrealdb:
+        image: surrealdb/surrealdb:latest
+        ports:
+          - 8000:8000
+        options: >-
+          --health-cmd "curl --fail http://localhost:8000/status || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Setup Bun
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      # Install dependencies
+      - name: Install dependencies
+        run: bun install
+
+      # Wait for SurrealDB
+      - name: Wait for SurrealDB
+        run: |
+          echo "Waiting for SurrealDB to become healthy..."
+          until curl --fail http://localhost:8000/status; do
+            echo "Waiting for SurrealDB..."
+            sleep 1
+          done
+          echo "SurrealDB is up and running!"
+
+      # Run tests
+      - name: Run tests
+        run: bun test
+
+      # Stop SurrealDB and cleanup
+      - name: Stop SurrealDB
+        if: always()
+        run: echo "Cleaning up... SurrealDB service will stop automatically."

@@ -10,24 +10,20 @@ on:
 jobs:
   release:
     name: Create Release
-    runs-on: ubuntu-latest
-
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-
+    runs-on: ubuntu-latest
     steps:
-      # Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # Setup Bun
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
 
-      # Install dependencies
       - name: Install dependencies
         run: bun install
 
-      # Check version change
       - name: Get current and previous version
         id: version
         run: |
@@ -41,7 +37,6 @@ jobs:
           fi
           echo "version=$CURR_VERSION" >> $GITHUB_OUTPUT
 
-      # Generate Changelog
       - name: Generate Changelog
         id: changelog
         uses: orhun/git-cliff-action@v2
@@ -61,7 +56,6 @@ jobs:
             chore = "📦 Chores"
             refactor = "♻️ Refactors"
 
-      # Create GitHub Release
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -70,7 +64,6 @@ jobs:
           body_path: CHANGELOG.md
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Publish to npm
       - name: Publish to npm
         run: |
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc

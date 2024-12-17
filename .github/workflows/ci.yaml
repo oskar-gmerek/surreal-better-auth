@@ -10,18 +10,23 @@ jobs:
     name: Run Tests with SurrealDB
     runs-on: ubuntu-latest
 
-    services:
-      surrealdb:
-        image: surrealdb/surrealdb:latest
-        ports:
-          - 8000:8000
-        options: >-
-          --health-cmd "curl --fail http://localhost:8000/status || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      # Setup SurrealDB
+      - name: Start SurrealDB
+        uses: surrealdb/setup-surreal@v2
+        with:
+          surrealdb_version: latest
+          surrealdb_port: 8000
+          surrealdb_username: root
+          surrealdb_password: root
+          surrealdb_auth: false
+          surrealdb_strict: false
+          surrealdb_log: info
+          surrealdb_additional_args: --allow-all
+          surrealdb_retry_count: 30
       # Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4

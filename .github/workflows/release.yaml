@@ -68,8 +68,7 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: Release v${{ steps.version.outputs.version }}
           body_path: CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # Publish to npm
       - name: Publish to npm

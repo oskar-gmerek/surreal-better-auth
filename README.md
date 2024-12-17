@@ -1,6 +1,9 @@
 # Surreal Adapter for Better Auth
 This adapter allows you to use [SurrealDB](https://surrealdb.com) as a database for your [Better Auth](https://better-auth.com) implementation.
 
+## Feedback
+⭐ Found this adapter useful? Show some love with a star! Your support keeps the code evolving. 🚀
+
 ## » Installation
 ```bash
 bun add surreal-better-auth

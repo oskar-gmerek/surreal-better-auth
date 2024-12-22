@@ -1,5 +1,5 @@
 # Surreal Adapter for Better Auth
-This adapter allows you to use [SurrealDB]([https://surrealdb.com](https://surrealist.app/referral?code=4pn5aba943lpbn8l)) as a database for your [Better Auth](https://better-auth.com) implementation.
+This adapter allows you to use [SurrealDB](https://surrealist.app/referral?code=4pn5aba943lpbn8l) as a database for your [Better Auth](https://better-auth.com) implementation.
 
 ## Feedback
 ⭐ Found this project helpful? Show some love with a star and consider to be a [SPONSOR](https://github.com/sponsors/oskar-gmerek)! Your support keeps the code evolving. 🚀

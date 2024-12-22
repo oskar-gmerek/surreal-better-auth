@@ -2,7 +2,10 @@
 This adapter allows you to use [SurrealDB](https://surrealdb.com) as a database for your [Better Auth](https://better-auth.com) implementation.
 
 ## Feedback
-⭐ Found this adapter useful? Show some love with a star! Your support keeps the code evolving. 🚀
+⭐ Found this project helpful? Show some love with a star and consider to be a [SPONSOR](https://github.com/sponsors/oskar-gmerek)! Your support keeps the code evolving. 🚀
+
+## Free Database
+✨✨✨ Grab [FREE SurrealDB Cloud instance](https://surrealist.app/referral?code=4pn5aba943lpbn8l) 🚀🚀🚀
 
 ## » Installation
 ```bash

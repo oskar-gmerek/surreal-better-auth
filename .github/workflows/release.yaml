@@ -56,6 +56,26 @@ jobs:
             chore = "📦 Chores"
             refactor = "♻️ Refactors"
 
+            [template]
+            list = """
+            {% for group, commits in commits | group_by(attribute="type") %}
+            ### {{ group | upper_first }}
+            {% for commit in commits %}
+            - {{ commit.message | upper_first }} ([{{ commit.hash | truncate(length=7) }}]({{ commit.link }}))
+            {% endfor %}
+            {% endfor %}
+            """
+
+      - name: Debug Changelog
+        run: cat CHANGELOG.md
+
+      - name: Validate Changelog
+        run: |
+          if [ ! -s CHANGELOG.md ]; then
+            echo "Changelog is empty. Exiting..."
+            exit 1
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:

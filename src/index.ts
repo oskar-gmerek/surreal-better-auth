@@ -17,7 +17,6 @@ const createTransform = (options: BetterAuthOptions) => {
             return field;
         }
         const f = schema[model].fields[field];
-        console.log({ f })
         return f.fieldName || field;
     }
 
@@ -81,7 +80,6 @@ const createTransform = (options: BetterAuthOptions) => {
                     case "ends_with":
                         return `string::ends_with(${field},'${value}')`;
                     default:
-                        console.log({ field, value, recordid: value instanceof RecordId })
                         return (field === 'id' || value instanceof RecordId) ?
                             `${field} = ${jsonify(value)}`
                             :
@@ -105,7 +103,6 @@ export const surrealAdapter = (db: Surreal) => async (options: BetterAuthOptions
         create: async ({ model, data }) => {
             const transformed = transformInput(data, model, "create");
             const [result] = await db.create(model, transformed);
-            console.log({ model, transformed })
             return transformOutput(result, model);
         },
         findOne: async ({ model, where, select = [] }) => {
@@ -113,9 +110,6 @@ export const surrealAdapter = (db: Surreal) => async (options: BetterAuthOptions
             const selectClause = select.length > 0 && select.map((f) => getField(model, f)) || []
             const query = select.length > 0 ? `SELECT ${selectClause.join(', ')} FROM ${model} WHERE ${whereClause} LIMIT 1` : `SELECT * FROM ${model} WHERE ${whereClause} LIMIT 1`;
             const result = await db.query<[any[]]>(query)
-            console.log({ whereClause, query, result: result[0][0] })
-            const output = transformOutput(result[0][0], model, select);
-            console.log({ output });
             return transformOutput(result[0][0], model, select);
         },
         findMany: async ({ model, where, sortBy, limit, offset }) => {
@@ -133,7 +127,6 @@ export const surrealAdapter = (db: Surreal) => async (options: BetterAuthOptions
             if (offset !== undefined) {
                 query += ` START ${offset}`;
             }
-            console.log({ query })
             const [results] = await db.query<[any[]]>(query);
             return results.map(record => transformOutput(record, model));
         },

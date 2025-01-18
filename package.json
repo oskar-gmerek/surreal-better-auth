@@ -32,7 +32,8 @@
     "LICENSE"
   ],
   "devDependencies": {
-    "@types/bun": "^1.1.16",
+    "@better-auth/utils": "^0.2.3",
+    "@types/bun": "^1.1.17",
     "dayjs": "^1.11.13"
   },
   "peerDependencies": {

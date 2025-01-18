@@ -1,228 +1,162 @@
-import type { Adapter, BetterAuthOptions, Where } from "better-auth/types";
-import { PreparedQuery, type Surreal } from "surrealdb";
+import { generateId } from 'better-auth';
+import { getAuthTables } from 'better-auth/db';
+import { Adapter, BetterAuthOptions, Where } from 'better-auth/types';
+import { jsonify, RecordId, Surreal } from 'surrealdb';
+import { withApplyDefault } from './utils';
 
-function composeWhereClause(where: Where[], model: string): string {
-  if (!where.length) return "";
+const createTransform = (options: BetterAuthOptions) => {
+    const schema = getAuthTables(options);
 
-  return where
-    .map(({ field, value, operator = "eq", connector = "AND" }, index) => {
-      const val =
-        typeof value === "string" ? `'${value.replace(/'/g, "\\'")}'` : value;
-      const mod = `'${model.replace(/'/g, "\\'")}'`;
+    function transformSelect(select: string[], model: string): string[] {
+        if (!select || select.length === 0) return [];
+        return select.map(field => getField(model, field));
+    }
 
-      const condition = {
-        eq: () =>
-          field === "id"
-            ? `${field} = type::thing(${mod}, ${val})`
-            : `${field} = ${val}`,
-        in: () =>
-          field === "id"
-            ? `${field} IN [${
-                Array.isArray(val)
-                  ? val.map((v) => `type::thing('${model}', ${v})`).join(", ")
-                  : `type::thing('${model}', ${val})`
-              }]`
-            : `${field} IN [${
-                Array.isArray(value) ? value.map((v) => `${v}`).join(", ") : val
-              }]`,
-        gt: () => `${field} > ${val}`,
-        gte: () => `${field} >= ${val}`,
-        lt: () => `${field} < ${val}`,
-        lte: () => `${field} <= ${val}`,
-        ne: () => `${field} != ${val}`,
-        contains: () => `${field} CONTAINS ${val}`,
-        starts_with: () => `string::starts_with(${field}, ${val})`,
-        ends_with: () => `string::ends_with(${field}, ${val})`,
-      }[operator.toLowerCase() as typeof operator]();
+    function getField(model: string, field: string) {
+        if (field === "id") {
+            return field;
+        }
+        const f = schema[model].fields[field];
+        console.log({ f })
+        return f.fieldName || field;
+    }
 
-      return index > 0 ? `${connector} ${condition}` : condition;
-    })
-    .join(" ");
-}
+    return {
+        transformInput(data: Record<string, any>, model: string, action: "update" | "create") {
+            const transformedData: Record<string, any> =
+                action === "update"
+                    ? {}
+                    : {
+                        id: options.advanced?.generateId
+                            ? options.advanced.generateId({ model })
+                            : data.id || generateId(),
+                    };
 
-function checkForIdInWhereClause(
-  where: Where[],
-): string | number | boolean | string[] | number[] | undefined {
-  if (where.some(({ field }) => field === "id")) {
-    return where.find(({ field }) => field === "id")?.value;
-  }
-}
-
-export const surrealAdapter = (db: Surreal) => (options: BetterAuthOptions) => {
-  if (!db) {
-    throw new Error("SurrealDB adapter requires a SurrealDB client");
-  }
-  return {
-    id: "surrealdb",
-    async create(data) {
-      const { model, data: val } = data;
-
-      const query = new PreparedQuery(
-        `CREATE type::table($model) CONTENT $val `,
-        {
-          model: model,
-          val: val,
+            const fields = schema[model].fields;
+            for (const field in fields) {
+                const value = data[field];
+                if (value === undefined && !fields[field].defaultValue) {
+                    continue;
+                }
+                transformedData[fields[field].fieldName || field] = withApplyDefault(value, fields[field], action);
+            }
+            return transformedData;
         },
-      );
-
-      const response = await db.query<[any[]]>(query);
-      const result = response[0][0];
-      return result;
-    },
-    async findOne(data) {
-      const { model, where, select = [] } = data;
-
-      const wheres = composeWhereClause(where, model);
-
-      const query =
-        select.length > 0
-          ? new PreparedQuery(
-              `SELECT type::fields($selects) FROM IF $thing {type::thing($model, $thing)} ELSE {type::table($model)} WHERE $wheres;`,
-              {
-                id: select.includes("id")
-                  ? 'meta::id("id") as id, '
-                  : undefined,
-                thing: checkForIdInWhereClause(where) || undefined,
-                selects: select,
-                model: model,
-                wheres: wheres,
-              },
-            )
-          : new PreparedQuery(
-              `SELECT * FROM IF $thing {type::thing($model, $thing)} ELSE {type::table($model)} WHERE $wheres;`,
-              {
-                id: select.includes("id")
-                  ? 'meta::id("id") as id, '
-                  : undefined,
-                thing: checkForIdInWhereClause(where) || undefined,
-                model: model,
-                wheres: wheres,
-              },
-            );
-
-      const response = await db.query<[any[]]>(query);
-      const result = response[0][0];
-
-      if (!result) {
-        return null;
-      }
-
-      return result;
-    },
-    async findMany(data) {
-      const { model, where, limit, offset, sortBy } = data;
-      const clauses: string[] = [];
-
-      if (where) {
-        const wheres = composeWhereClause(where, model);
-        clauses.push(`WHERE ${wheres}`);
-      }
-      if (sortBy !== undefined) {
-        clauses.push(`ORDER BY ${sortBy.field} ${sortBy.direction}`);
-      }
-      if (limit !== undefined) {
-        clauses.push(`LIMIT type::number('${limit}')`);
-      }
-      if (offset !== undefined) {
-        clauses.push(`START type::number('${offset}')`);
-      }
-
-      const query = new PreparedQuery(
-        `SELECT * FROM type::table($model) ${
-          clauses.length > 0 ? clauses.join(" ") : ""
-        }`,
-        {
-          model: model,
+        transformOutput(data: Record<string, any>, model: string, select: string[] = []) {
+            if (!data) return null;
+            const transformedData: Record<string, any> =
+                data.id || data._id
+                    ? select.length === 0 || select.includes("id")
+                        ? { id: data.id }
+                        : {}
+                    : {};
+            const tableSchema = schema[model].fields;
+            for (const key in tableSchema) {
+                if (select.length && !select.includes(key)) {
+                    continue;
+                }
+                const field = tableSchema[key];
+                if (field) {
+                    transformedData[key] = data[field.fieldName || key];
+                }
+            }
+            return transformedData as any;
         },
-      );
-
-      const response = await db.query<[any[]]>(query);
-      const result = response[0];
-
-      return result;
-    },
-    async update(data) {
-      const { model, where, update } = data;
-      const wheres = composeWhereClause(where, model);
-      if (!wheres)
-        throw new Error("Empty conditions - possible unintended operation");
-
-      if (update.id) {
-        update.id = undefined;
-      }
-
-      const query = new PreparedQuery(
-        "UPDATE type::table($model) MERGE { $update } WHERE $wheres",
-        {
-          model: model,
-          update: update,
-          wheres: wheres,
+        convertWhereClause(where: Where[], model: string) {
+            return where.map(clause => {
+                const { field: _field, value, operator } = clause;
+                const field = getField(model, _field);
+                switch (operator) {
+                    case "eq":
+                        return (field === 'id' || value instanceof RecordId) ?
+                            `${field} = ${jsonify(value)}`
+                            :
+                            `${field} = '${jsonify(value)}'`
+                    case "in":
+                        return `${field} IN [${jsonify(value)}]`;
+                    case "contains":
+                        return `${field} CONTAINS '${jsonify(value)}'`;
+                    case "starts_with":
+                        return `string::starts_with(${field},'${value}')`;
+                    case "ends_with":
+                        return `string::ends_with(${field},'${value}')`;
+                    default:
+                        console.log({ field, value, recordid: value instanceof RecordId })
+                        return (field === 'id' || value instanceof RecordId) ?
+                            `${field} = ${jsonify(value)}`
+                            :
+                            `${field} = '${jsonify(value)}'`
+                }
+            }).join(' AND ');
         },
-      );
+        transformSelect,
+        getField,
+    };
+};
 
-      const response = await db.query<[any[]]>(query);
-      const result = response[0][0];
+export const surrealAdapter = (db: Surreal) => async (options: BetterAuthOptions) => {
+    if (!db) {
+        throw new Error("SurrealDB adapter requires a SurrealDB client");
+    }
+    const { transformInput, transformOutput, convertWhereClause, getField } = createTransform(options);
 
-      return result;
-    },
-    async updateMany(data) {
-      const { model, where, update } = data;
-      const wheres = composeWhereClause(where, model);
-      if (!wheres)
-        throw new Error("Empty conditions - possible unintended operation");
-
-      if (update.id) {
-        update.id = undefined;
-      }
-
-      const query = new PreparedQuery(
-        "UPDATE type::table($model) MERGE { $update } WHERE $wheres",
-        {
-          model: model,
-          update: update,
-          wheres: wheres,
+    return {
+        id: "surreal",
+        create: async ({ model, data }) => {
+            const transformed = transformInput(data, model, "create");
+            const [result] = await db.create(model, transformed);
+            console.log({ model, transformed })
+            return transformOutput(result, model);
         },
-      );
-
-      const response = await db.query<[any[]]>(query);
-      const result = response[0];
-
-      return result.length;
-    },
-    async delete(data) {
-      const { model, where } = data;
-      const wheres = composeWhereClause(where, model);
-      if (!wheres)
-        throw new Error("Empty conditions - possible unintended operation");
-
-      const query = new PreparedQuery(
-        `DELETE type::table($model) WHERE ${wheres}`,
-        {
-          model: model,
-          wheres: wheres,
+        findOne: async ({ model, where, select = [] }) => {
+            const whereClause = convertWhereClause(where, model);
+            const selectClause = select.length > 0 && select.map((f) => getField(model, f)) || []
+            const query = select.length > 0 ? `SELECT ${selectClause.join(', ')} FROM ${model} WHERE ${whereClause} LIMIT 1` : `SELECT * FROM ${model} WHERE ${whereClause} LIMIT 1`;
+            const result = await db.query<[any[]]>(query)
+            console.log({ whereClause, query, result: result[0][0] })
+            const output = transformOutput(result[0][0], model, select);
+            console.log({ output });
+            return transformOutput(result[0][0], model, select);
         },
-      );
-
-      await db.query(query);
-    },
-    async deleteMany(data) {
-      const { model, where } = data;
-      const wheres = composeWhereClause(where, model);
-      if (!wheres)
-        throw new Error("Empty conditions - possible unintended operation");
-
-      const query = new PreparedQuery(
-        `DELETE type::table($model) WHERE ${wheres}`,
-        {
-          model: model,
-          wheres: wheres,
+        findMany: async ({ model, where, sortBy, limit, offset }) => {
+            let query = `SELECT * FROM ${model}`;
+            if (where) {
+                const whereClause = convertWhereClause(where, model);
+                query += ` WHERE ${whereClause}`;
+            }
+            if (sortBy) {
+                query += ` ORDER BY ${getField(model, sortBy.field)} ${sortBy.direction}`;
+            }
+            if (limit !== undefined) {
+                query += ` LIMIT ${limit}`;
+            }
+            if (offset !== undefined) {
+                query += ` START ${offset}`;
+            }
+            console.log({ query })
+            const [results] = await db.query<[any[]]>(query);
+            return results.map(record => transformOutput(record, model));
         },
-      );
-
-      const response = await db.query<[any[]]>(query);
-      const result = response[0];
-
-      return result.length;
-    },
-  } satisfies Adapter;
+        update: async ({ model, where, update }) => {
+            const whereClause = convertWhereClause(where, model);
+            const transformedUpdate = transformInput(update, model, "update");
+            const [result] = await db.query<[any[]]>(`UPDATE ${model} MERGE ${JSON.stringify(transformedUpdate)} WHERE ${whereClause}`);
+            return transformOutput(result[0], model);
+        },
+        delete: async ({ model, where }) => {
+            const whereClause = convertWhereClause(where, model);
+            await db.query(`DELETE FROM ${model} WHERE ${whereClause}`);
+        },
+        deleteMany: async ({ model, where }) => {
+            const whereClause = convertWhereClause(where, model);
+            const [result] = await db.query<[any[]]>(`DELETE FROM ${model} WHERE ${whereClause}`);
+            return result.length;
+        },
+        updateMany: async ({ model, where, update }) => {
+            const whereClause = convertWhereClause(where, model);
+            const transformedUpdate = transformInput(update, model, "update");
+            const [result] = await db.query<[any[]]>(`UPDATE ${model} MERGE ${JSON.stringify(transformedUpdate)} WHERE ${whereClause}`);
+            return transformOutput(result[0], model);
+        },
+    } satisfies Adapter;
 };

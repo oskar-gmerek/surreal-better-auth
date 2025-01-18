@@ -1,7 +1,7 @@
-import { expect, test } from "bun:test";
 import { generateId } from "better-auth";
 import type { Adapter, BetterAuthOptions, User } from "better-auth/types";
-
+import { expect, test } from "bun:test";
+import { RecordId } from "surrealdb";
 interface AdapterTestOptions {
 	getAdapter: (
 		customOptions?: Omit<BetterAuthOptions, "database">,
@@ -421,7 +421,7 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 		async () => {
 			const customAdapter = await opts.getAdapter({
 				advanced: {
-					generateId: () => "mocked-id",
+					generateId: () => 'mocked-id',
 				},
 			});
 
@@ -436,8 +436,8 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 					updatedAt: new Date(),
 				},
 			});
-
-			expect(res.id).toBe("mocked-id");
+			expect(res.id).toBeInstanceOf(RecordId);
+			expect(res.id.id).toBe('mocked-id');
 		},
 	);
 }

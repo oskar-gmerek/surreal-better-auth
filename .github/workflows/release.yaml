@@ -37,44 +37,14 @@ jobs:
           fi
           echo "version=$CURR_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Generate Changelog
-        id: changelog
-        uses: orhun/git-cliff-action@v2
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@v3
         with:
-          args: --output CHANGELOG.md
+          config: cliff.toml
+          args: --verbose
         env:
-          GIT_CLIFF_CONFIG: |
-            [changelog]
-            header = "## Changelog"
-            footer = ""
-            trim = true
-
-            [commit-types]
-            feat = "✨ Features"
-            fix = "🐛 Bug Fixes"
-            docs = "📝 Documentation"
-            chore = "📦 Chores"
-            refactor = "♻️ Refactors"
-
-            [template]
-            list = """
-            {% for group, commits in commits | group_by(attribute="type") %}
-            ### {{ group | upper_first }}
-            {% for commit in commits %}
-            - {{ commit.message | upper_first }} ([{{ commit.hash | truncate(length=7) }}]({{ commit.link }}))
-            {% endfor %}
-            {% endfor %}
-            """
-
-      - name: Debug Changelog
-        run: cat CHANGELOG.md
-
-      - name: Validate Changelog
-        run: |
-          if [ ! -s CHANGELOG.md ]; then
-            echo "Changelog is empty. Exiting..."
-            exit 1
-          fi
+          OUTPUT: CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1

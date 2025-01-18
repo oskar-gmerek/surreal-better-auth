@@ -1,5 +1,10 @@
 import { FieldAttribute } from "better-auth/db";
 
+function isDateString(dateString: string) {
+    const date = new Date(dateString);
+    return !isNaN(date.getTime());
+}
+
 export function withApplyDefault(
     value: any,
     field: FieldAttribute,
@@ -15,6 +20,9 @@ export function withApplyDefault(
             }
             return field.defaultValue;
         }
+    }
+    if (typeof value === 'string' && isDateString(value)) {
+        return new Date(value);
     }
     return value;
 }

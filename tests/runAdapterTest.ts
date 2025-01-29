@@ -437,7 +437,7 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 				},
 			});
 			expect(res.id).toBeInstanceOf(RecordId);
-			expect(res.id.id).toBe('mocked-id');
+			expect((res.id as unknown as RecordId).id).toBe('mocked-id');
 		},
 	);
 }

@@ -1,4 +1,4 @@
-import { FieldAttribute } from "better-auth/db";
+import type { FieldAttribute } from "better-auth/db";
 
 function isDateString(dateString: string) {
     const date = new Date(dateString);

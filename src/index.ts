@@ -1,6 +1,6 @@
 import { generateId } from 'better-auth';
 import { getAuthTables } from 'better-auth/db';
-import { Adapter, BetterAuthOptions, Where } from 'better-auth/types';
+import type { Adapter, BetterAuthOptions, Where } from 'better-auth/types';
 import { jsonify, RecordId, Surreal } from 'surrealdb';
 import { withApplyDefault } from './utils';
 

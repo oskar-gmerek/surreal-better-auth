@@ -9,7 +9,7 @@
         "dayjs": "^1.11.13",
       },
       "peerDependencies": {
-        "better-auth": "^1.1.21",
+        "better-auth": "^1.2.1",
         "surrealdb": "^1.2.1",
         "typescript": "^5.8.2",
       },

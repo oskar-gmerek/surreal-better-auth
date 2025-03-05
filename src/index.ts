@@ -92,7 +92,7 @@ const createTransform = (options: BetterAuthOptions) => {
     };
 };
 
-export const surrealAdapter = (db: Surreal) => async (options: BetterAuthOptions) => {
+export const surrealAdapter = (db: Surreal) => (options: BetterAuthOptions) => {
     if (!db) {
         throw new Error("SurrealDB adapter requires a SurrealDB client");
     }

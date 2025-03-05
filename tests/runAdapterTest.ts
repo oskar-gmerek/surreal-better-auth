@@ -1,3 +1,5 @@
+// Based on packages/better-auth/src/adapters/test.ts
+
 import { generateId } from "better-auth";
 import type { Adapter, BetterAuthOptions, User } from "better-auth/types";
 import { expect, test } from "bun:test";
@@ -401,7 +403,21 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 		});
 		expect(res.length).toBe(3);
 	});
-
+	// Count method test (this test is not official and should be changed as soon as official test is available)
+	test("should search users with startsWith", async () => {
+		const res = await adapter.count({
+			model: "user",
+			where: [
+				{
+					field: "name",
+					operator: "starts_with",
+					value: "us",
+				},
+			],
+		});
+		expect(res).toBe(3);
+	});
+	// End of count method test (unofficial)
 	test("should search users with endsWith", async () => {
 		const res = await adapter.findMany({
 			model: "user",

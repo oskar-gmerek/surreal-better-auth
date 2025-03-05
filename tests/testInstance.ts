@@ -1,4 +1,3 @@
-import { afterAll } from "bun:test";
 import type { SuccessContext } from "@better-fetch/fetch";
 import { betterAuth } from "better-auth";
 import { createAuthClient } from "better-auth/client";
@@ -10,6 +9,7 @@ import type {
   Session,
   User,
 } from "better-auth/types";
+import { afterAll } from "bun:test";
 
 import { getBaseURL } from "../utlis/getBaseURL";
 

@@ -130,6 +130,13 @@ export const surrealAdapter = (db: Surreal) => (options: BetterAuthOptions) => {
             const [results] = await db.query<[any[]]>(query);
             return results.map(record => transformOutput(record, model));
         },
+        count: async ({ model, where }) => {
+            const whereClause = where ? convertWhereClause(where, model) : '';
+            const query = `SELECT count(${whereClause}) FROM ${model} GROUP ALL`;
+            const [result] = await db.query<[any[]]>(query);
+            const res = result[0];
+            return res.count;
+        },
         update: async ({ model, where, update }) => {
             const whereClause = convertWhereClause(where, model);
             const transformedUpdate = transformInput(update, model, "update");

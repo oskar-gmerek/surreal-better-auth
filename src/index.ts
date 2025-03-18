@@ -1,7 +1,7 @@
 import { generateId } from 'better-auth';
 import { getAuthTables } from 'better-auth/db';
 import type { Adapter, BetterAuthOptions, Where } from 'better-auth/types';
-import { jsonify, RecordId, Surreal } from 'surrealdb';
+import { jsonify, type RecordId, type Surreal } from 'surrealdb';
 import { withApplyDefault } from './utils';
 
 const createTransform = (options: BetterAuthOptions) => {
@@ -65,9 +65,11 @@ const createTransform = (options: BetterAuthOptions) => {
             return where.map(clause => {
                 const { field: _field, value, operator } = clause;
                 const field = getField(model, _field);
+                const v = value as unknown as RecordId
+                const isRecordId = !!v.tb;
                 switch (operator) {
                     case "eq":
-                        return (field === 'id' || value instanceof RecordId) ?
+                        return (field === 'id' || isRecordId) ?
                             `${field} = ${jsonify(value)}`
                             :
                             `${field} = '${jsonify(value)}'`
@@ -80,7 +82,7 @@ const createTransform = (options: BetterAuthOptions) => {
                     case "ends_with":
                         return `string::ends_with(${field},'${value}')`;
                     default:
-                        return (field === 'id' || value instanceof RecordId) ?
+                        return (field === 'id' || isRecordId) ?
                             `${field} = ${jsonify(value)}`
                             :
                             `${field} = '${jsonify(value)}'`

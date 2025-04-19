@@ -78,6 +78,7 @@ export const auth = betterAuth({
 ### Default Schemas
 
 #### Account Table
+
 ```sql
 DEFINE TABLE account TYPE ANY SCHEMALESS COMMENT 'better-auth: accounts' PERMISSIONS NONE;
 DEFINE FIELD accountId ON account TYPE record<user> REFERENCE ON DELETE CASCADE PERMISSIONS FULL;
@@ -90,9 +91,10 @@ DEFINE FIELD userId ON account TYPE record<user> REFERENCE ON DELETE CASCADE PER
 ```
 
 #### Session Table
+
 ```sql
 DEFINE TABLE session TYPE ANY SCHEMALESS COMMENT 'better-auth: sessions' PERMISSIONS NONE;
-DEFINE FIELD activeOrganizationId ON session TYPE option<string> COMMENT 'The id of the active organization' PERMISSIONS FULL;
+DEFINE FIELD activeOrganizationId ON session TYPE option<record<organization>> REFERENCE ON DELETE UNSET COMMENT 'The id of the active organization' PERMISSIONS FULL;
 DEFINE FIELD createdAt ON session TYPE datetime DEFAULT time::now() PERMISSIONS FULL;
 DEFINE FIELD expiresAt ON session PERMISSIONS FULL;
 DEFINE FIELD id ON session TYPE string PERMISSIONS FULL;
@@ -103,6 +105,7 @@ DEFINE FIELD userId ON session TYPE record<user> REFERENCE ON DELETE CASCADE PER
 ```
 
 #### User Table
+
 ```sql
 DEFINE TABLE user TYPE ANY SCHEMALESS COMMENT 'better-auth: users' PERMISSIONS NONE;
 DEFINE FIELD chats ON user TYPE references<chat> PERMISSIONS FULL;
@@ -113,6 +116,7 @@ DEFINE FIELD organizations ON user TYPE references<member> PERMISSIONS FULL;
 ### Orgs Plugin Schemas
 
 #### Organization Table
+
 ```sql
 DEFINE TABLE organization TYPE NORMAL SCHEMALESS COMMENT 'better-auth orgs: organizations' PERMISSIONS NONE;
 DEFINE FIELD createdAt ON organization TYPE datetime DEFAULT time::now() PERMISSIONS FULL;
@@ -124,6 +128,7 @@ DEFINE FIELD updatedAt ON organization TYPE datetime DEFAULT time::now() PERMISS
 ```
 
 #### Member Table
+
 ```sql
 DEFINE TABLE member TYPE NORMAL SCHEMALESS COMMENT 'better-auth orgs: members' PERMISSIONS NONE;
 DEFINE FIELD createdAt ON member TYPE datetime DEFAULT time::now() PERMISSIONS FULL;
@@ -134,6 +139,7 @@ DEFINE FIELD userId ON member TYPE record<user> REFERENCE ON DELETE IGNORE PERMI
 ```
 
 #### Team Table
+
 ```sql
 DEFINE TABLE team TYPE NORMAL SCHEMALESS COMMENT 'better-auth orgs: teams' PERMISSIONS NONE;
 DEFINE FIELD createdAt ON team TYPE datetime DEFAULT time::now() PERMISSIONS FULL;
@@ -143,6 +149,7 @@ DEFINE FIELD updatedAt ON team TYPE option<datetime> DEFAULT time::now() PERMISS
 ```
 
 #### Invitation Table
+
 ```sql
 DEFINE TABLE invitation TYPE NORMAL SCHEMALESS COMMENT 'better-auth orgs: invitations' PERMISSIONS NONE;
 DEFINE FIELD createdAt ON invitation TYPE datetime DEFAULT time::now() PERMISSIONS FULL;

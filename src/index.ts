@@ -13,10 +13,6 @@ interface SurrealConfig {
 	db: string;
 }
 
-interface SurrealAdapter extends Adapter {
-	ensureConnection: () => Promise<Surreal>;
-}
-
 const createTransform = (options: BetterAuthOptions) => {
 	const schema = getAuthTables(options);
 
@@ -122,7 +118,7 @@ const createTransform = (options: BetterAuthOptions) => {
 
 export const surrealAdapter =
 	(config: SurrealConfig) =>
-	(options: BetterAuthOptions): SurrealAdapter => {
+	(options: BetterAuthOptions): Adapter => {
 		let db: Surreal | null = null;
 		let isConnecting = false;
 		let connectionPromise: Promise<Surreal> | null = null;
@@ -176,7 +172,6 @@ export const surrealAdapter =
 
 		return {
 			id: "surreal",
-			ensureConnection,
 			create: async <T extends Record<string, unknown>, R = T>({
 				model,
 				data,
@@ -250,7 +245,10 @@ export const surrealAdapter =
 				const whereClause = convertWhereClause(where, model);
 				const transformedUpdate = transformInput(update, model, "update");
 				const [result] = await db.query<[Record<string, unknown>[]]>(
-					`UPDATE ${model} MERGE ${JSON.stringify(transformedUpdate)} WHERE ${whereClause}`,
+					`UPDATE ${model} MERGE $transformedUpdate WHERE ${whereClause}`,
+					{
+						transformedUpdate,
+					},
 				);
 				return transformOutput(result[0], model) as R;
 			},
@@ -279,7 +277,10 @@ export const surrealAdapter =
 				const whereClause = convertWhereClause(where, model);
 				const transformedUpdate = transformInput(update, model, "update");
 				const [result] = await db.query<[Record<string, unknown>[]]>(
-					`UPDATE ${model} MERGE ${JSON.stringify(transformedUpdate)} WHERE ${whereClause}`,
+					`UPDATE ${model} MERGE $transformedUpdate WHERE ${whereClause}`,
+					{
+						transformedUpdate,
+					},
 				);
 				return transformOutput(result[0], model) as R;
 			},

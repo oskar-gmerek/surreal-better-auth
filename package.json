@@ -1,6 +1,6 @@
 {
   "name": "surrealdb-better-auth",
-  "version": "0.6.0",
+  "version": "0.0.2",
   "author": {
     "name": "Necmettin Karakaya",
     "url": "https://github.com/necmttn",
@@ -22,7 +22,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/necmttn/surrealdb-better-auth.git"
+    "url": "git+https://github.com/necmttn/surrealdb-better-auth.git"
   },
   "license": "MIT",
   "main": "src/index.ts",

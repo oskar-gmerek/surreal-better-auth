@@ -1,8 +1,21 @@
 import { generateId } from "better-auth";
 import { getAuthTables } from "better-auth/db";
 import type { Adapter, BetterAuthOptions, Where } from "better-auth/types";
-import { jsonify, type RecordId, type Surreal } from "surrealdb";
+import { jsonify, type RecordId } from "surrealdb";
+import { Surreal } from "surrealdb";
 import { withApplyDefault } from "./utils";
+
+interface SurrealConfig {
+	address: string;
+	username: string;
+	password: string;
+	ns: string;
+	db: string;
+}
+
+interface SurrealAdapter extends Adapter {
+	ensureConnection: () => Promise<Surreal>;
+}
 
 const createTransform = (options: BetterAuthOptions) => {
 	const schema = getAuthTables(options);
@@ -21,12 +34,12 @@ const createTransform = (options: BetterAuthOptions) => {
 	}
 
 	return {
-		transformInput(
-			data: Record<string, any>,
+		transformInput<T extends Record<string, unknown>>(
+			data: T,
 			model: string,
 			action: "update" | "create",
 		) {
-			const transformedData: Record<string, any> =
+			const transformedData: Record<string, unknown> =
 				action === "update"
 					? {}
 					: {
@@ -49,13 +62,13 @@ const createTransform = (options: BetterAuthOptions) => {
 			}
 			return transformedData;
 		},
-		transformOutput(
-			data: Record<string, any>,
+		transformOutput<T extends Record<string, unknown>>(
+			data: T,
 			model: string,
 			select: string[] = [],
 		) {
 			if (!data) return null;
-			const transformedData: Record<string, any> =
+			const transformedData: Record<string, unknown> =
 				data.id || data._id
 					? select.length === 0 || select.includes("id")
 						? { id: data.id }
@@ -71,7 +84,7 @@ const createTransform = (options: BetterAuthOptions) => {
 					transformedData[key] = data[field.fieldName || key];
 				}
 			}
-			return transformedData as any;
+			return transformedData as T;
 		},
 		convertWhereClause(where: Where[], model: string) {
 			return where
@@ -107,82 +120,168 @@ const createTransform = (options: BetterAuthOptions) => {
 	};
 };
 
-export const surrealAdapter = (db: Surreal) => (options: BetterAuthOptions) => {
-	if (!db) {
-		throw new Error("SurrealDB adapter requires a SurrealDB client");
-	}
-	const { transformInput, transformOutput, convertWhereClause, getField } =
-		createTransform(options);
+export const surrealAdapter =
+	(config: SurrealConfig) =>
+	(options: BetterAuthOptions): SurrealAdapter => {
+		let db: Surreal | null = null;
+		let isConnecting = false;
+		let connectionPromise: Promise<Surreal> | null = null;
 
-	return {
-		id: "surreal",
-		create: async ({ model, data }) => {
-			const transformed = transformInput(data, model, "create");
-			const [result] = await db.create(model, transformed);
-			return transformOutput(result, model);
-		},
-		findOne: async ({ model, where, select = [] }) => {
-			const whereClause = convertWhereClause(where, model);
-			const selectClause =
-				(select.length > 0 && select.map((f) => getField(model, f))) || [];
-			const query =
-				select.length > 0
-					? `SELECT ${selectClause.join(", ")} FROM ${model} WHERE ${whereClause} LIMIT 1`
-					: `SELECT * FROM ${model} WHERE ${whereClause} LIMIT 1`;
-			const result = await db.query<[any[]]>(query);
-			return transformOutput(result[0][0], model, select);
-		},
-		findMany: async ({ model, where, sortBy, limit, offset }) => {
-			let query = `SELECT * FROM ${model}`;
-			if (where) {
+		const ensureConnection = async () => {
+			if (db) {
+				try {
+					// Test if connection is still alive
+					await db.query("SELECT * FROM user LIMIT 1");
+					return db;
+				} catch (error) {
+					// Connection is dead, reset and reconnect
+					db = null;
+				}
+			}
+
+			if (isConnecting && connectionPromise) {
+				return connectionPromise;
+			}
+
+			isConnecting = true;
+			connectionPromise = new Promise((resolve, reject) => {
+				const newDb = new Surreal();
+				newDb
+					.connect(config.address, {
+						namespace: config.ns,
+						database: config.db,
+						auth: {
+							username: config.username,
+							password: config.password,
+						},
+					})
+					.then(() => {
+						db = newDb;
+						isConnecting = false;
+						connectionPromise = null;
+						resolve(newDb);
+					})
+					.catch((error) => {
+						isConnecting = false;
+						connectionPromise = null;
+						reject(error);
+					});
+			});
+
+			return connectionPromise;
+		};
+
+		const { transformInput, transformOutput, convertWhereClause, getField } =
+			createTransform(options);
+
+		return {
+			id: "surreal",
+			ensureConnection,
+			create: async <T extends Record<string, unknown>, R = T>({
+				model,
+				data,
+			}: { model: string; data: T }) => {
+				const db = await ensureConnection();
+				const transformed = transformInput(data, model, "create");
+				const [result] = await db.create(model, transformed);
+				return transformOutput(result, model) as R;
+			},
+			findOne: async <T>({
+				model,
+				where,
+				select = [],
+			}: { model: string; where: Where[]; select?: string[] }) => {
+				const db = await ensureConnection();
 				const whereClause = convertWhereClause(where, model);
-				query += ` WHERE ${whereClause}`;
-			}
-			if (sortBy) {
-				query += ` ORDER BY ${getField(model, sortBy.field)} ${sortBy.direction}`;
-			}
-			if (limit !== undefined) {
-				query += ` LIMIT ${limit}`;
-			}
-			if (offset !== undefined) {
-				query += ` START ${offset}`;
-			}
-			const [results] = await db.query<[any[]]>(query);
-			return results.map((record) => transformOutput(record, model));
-		},
-		count: async ({ model, where }) => {
-			const whereClause = where ? convertWhereClause(where, model) : "";
-			const query = `SELECT count(${whereClause}) FROM ${model} GROUP ALL`;
-			const [result] = await db.query<[any[]]>(query);
-			const res = result[0];
-			return res.count;
-		},
-		update: async ({ model, where, update }) => {
-			const whereClause = convertWhereClause(where, model);
-			const transformedUpdate = transformInput(update, model, "update");
-			const [result] = await db.query<[any[]]>(
-				`UPDATE ${model} MERGE ${JSON.stringify(transformedUpdate)} WHERE ${whereClause}`,
-			);
-			return transformOutput(result[0], model);
-		},
-		delete: async ({ model, where }) => {
-			const whereClause = convertWhereClause(where, model);
-			await db.query(`DELETE FROM ${model} WHERE ${whereClause}`);
-		},
-		deleteMany: async ({ model, where }) => {
-			const whereClause = convertWhereClause(where, model);
-			const [result] = await db.query<[any[]]>(
-				`DELETE FROM ${model} WHERE ${whereClause}`,
-			);
-			return result.length;
-		},
-		updateMany: async ({ model, where, update }) => {
-			const whereClause = convertWhereClause(where, model);
-			const transformedUpdate = transformInput(update, model, "update");
-			const [result] = await db.query<[any[]]>(
-				`UPDATE ${model} MERGE ${JSON.stringify(transformedUpdate)} WHERE ${whereClause}`,
-			);
-			return transformOutput(result[0], model);
-		},
-	} satisfies Adapter;
-};
+				const selectClause =
+					(select.length > 0 && select.map((f) => getField(model, f))) || [];
+				const query =
+					select.length > 0
+						? `SELECT ${selectClause.join(", ")} FROM ${model} WHERE ${whereClause} LIMIT 1`
+						: `SELECT * FROM ${model} WHERE ${whereClause} LIMIT 1`;
+				const result = await db.query<[Record<string, unknown>[]]>(query);
+				return transformOutput(result[0][0], model, select) as T | null;
+			},
+			findMany: async <T>({
+				model,
+				where,
+				sortBy,
+				limit,
+				offset,
+			}: {
+				model: string;
+				where?: Where[];
+				sortBy?: { field: string; direction: "asc" | "desc" };
+				limit?: number;
+				offset?: number;
+			}) => {
+				const db = await ensureConnection();
+				let query = `SELECT * FROM ${model}`;
+				if (where) {
+					const whereClause = convertWhereClause(where, model);
+					query += ` WHERE ${whereClause}`;
+				}
+				if (sortBy) {
+					query += ` ORDER BY ${getField(model, sortBy.field)} ${sortBy.direction}`;
+				}
+				if (limit !== undefined) {
+					query += ` LIMIT ${limit}`;
+				}
+				if (offset !== undefined) {
+					query += ` START ${offset}`;
+				}
+				const [results] = await db.query<[Record<string, unknown>[]]>(query);
+				return results.map((record) => transformOutput(record, model) as T);
+			},
+			count: async ({ model, where }: { model: string; where?: Where[] }) => {
+				const db = await ensureConnection();
+				const whereClause = where ? convertWhereClause(where, model) : "";
+				const query = `SELECT count(${whereClause}) FROM ${model} GROUP ALL`;
+				const [result] = await db.query<[Record<string, unknown>[]]>(query);
+				const res = result[0];
+				return Number(res.count);
+			},
+			update: async <T extends Record<string, unknown>, R = T>({
+				model,
+				where,
+				update,
+			}: { model: string; where: Where[]; update: T }) => {
+				const db = await ensureConnection();
+				const whereClause = convertWhereClause(where, model);
+				const transformedUpdate = transformInput(update, model, "update");
+				const [result] = await db.query<[Record<string, unknown>[]]>(
+					`UPDATE ${model} MERGE ${JSON.stringify(transformedUpdate)} WHERE ${whereClause}`,
+				);
+				return transformOutput(result[0], model) as R;
+			},
+			delete: async ({ model, where }: { model: string; where: Where[] }) => {
+				const db = await ensureConnection();
+				const whereClause = convertWhereClause(where, model);
+				await db.query(`DELETE FROM ${model} WHERE ${whereClause}`);
+			},
+			deleteMany: async ({
+				model,
+				where,
+			}: { model: string; where: Where[] }) => {
+				const db = await ensureConnection();
+				const whereClause = convertWhereClause(where, model);
+				const [result] = await db.query<[Record<string, unknown>[]]>(
+					`DELETE FROM ${model} WHERE ${whereClause}`,
+				);
+				return result.length;
+			},
+			updateMany: async <T extends Record<string, unknown>, R = T>({
+				model,
+				where,
+				update,
+			}: { model: string; where: Where[]; update: T }) => {
+				const db = await ensureConnection();
+				const whereClause = convertWhereClause(where, model);
+				const transformedUpdate = transformInput(update, model, "update");
+				const [result] = await db.query<[Record<string, unknown>[]]>(
+					`UPDATE ${model} MERGE ${JSON.stringify(transformedUpdate)} WHERE ${whereClause}`,
+				);
+				return transformOutput(result[0], model) as R;
+			},
+		} satisfies Adapter;
+	};

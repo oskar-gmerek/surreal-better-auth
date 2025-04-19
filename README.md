@@ -43,31 +43,41 @@ yarn add surrealdb-better-auth
 
 ```typescript
 import { surrealAdapter } from "surrealdb-better-auth";
-import { databaseInstance } from "./your-surreal-singleton";
 
 export const auth = betterAuth({
 	// ... other Better Auth options
-	database: surrealAdapter(databaseInstance),
+	database: surrealAdapter({
+		address: "http://localhost:8000", // Your SurrealDB server address
+		username: "root", // Your SurrealDB username
+		password: "root", // Your SurrealDB password
+		ns: "namespace", // Your namespace
+		db: "database", // Your database name
+	}),
 });
 ```
 
-### Dynamic Database Connection
+### Environment Variables Setup
 
 ```typescript
 import { surrealAdapter } from "surrealdb-better-auth";
-import { getSurrealDB } from "./surreal";
 
 export const auth = betterAuth({
 	// ... other Better Auth options
-	database: async (options: BetterAuthOptions) => {
-		const surrealDB = await getSurrealDB();
-		if (!surrealDB) {
-			throw new Error("SurrealDB is not configured");
-		}
-		return surrealAdapter(surrealDB)(options);
-	},
+	database: surrealAdapter({
+		address: process.env.SURREALDB_ADDRESS,
+		username: process.env.SURREALDB_USERNAME,
+		password: process.env.SURREALDB_PASSWORD,
+		ns: process.env.SURREALDB_NAMESPACE,
+		db: process.env.SURREALDB_DATABASE,
+	}),
 });
 ```
+
+The adapter now handles connection management internally, including:
+- Automatic connection establishment
+- Connection pooling
+- Connection health checks
+- Automatic reconnection on connection loss
 
 ## 🆓 Free SurrealDB Cloud Instance
 

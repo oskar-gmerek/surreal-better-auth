@@ -22,7 +22,7 @@ export function withApplyDefault(
 			return field.defaultValue;
 		}
 	}
-	if (field.references?.model) {
+	if (field.references?.model || field.fieldName?.endsWith("Id")) {
 		return new StringRecordId(value);
 	}
 	if (typeof value === "string" && isDateString(value)) {

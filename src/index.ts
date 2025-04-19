@@ -52,7 +52,10 @@ const createTransform = (options: BetterAuthOptions) => {
 				}
 				transformedData[fields[field].fieldName || field] = withApplyDefault(
 					value,
-					fields[field],
+					{
+						...fields[field],
+						fieldName: fields[field].fieldName || field,
+					},
 					action,
 				);
 			}

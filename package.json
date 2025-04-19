@@ -1,11 +1,11 @@
 {
-  "name": "surreal-better-auth",
+  "name": "surrealdb-better-auth",
   "version": "0.6.0",
   "author": {
-    "name": "Oskar Gmerek",
-    "url": "https://oskargmerek.com",
-    "email": "oskar.gmerek@neetrio.com",
-    "github": "https://github.com/oskar-gmerek"
+    "name": "Necmettin Karakaya",
+    "url": "https://github.com/necmttn",
+    "email": "necmettin.karakaya@gmail.com",
+    "github": "https://github.com/necmttn"
   },
   "description": "Better Auth adapter for SurrealDB",
   "keywords": [
@@ -22,7 +22,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/oskar-gmerek/surreal-better-auth.git"
+    "url": "https://github.com/necmttn/surrealdb-better-auth.git"
   },
   "license": "MIT",
   "main": "src/index.ts",

@@ -133,6 +133,10 @@ export const surrealAdapter =
 					await db.query("SELECT * FROM user LIMIT 1");
 					return db;
 				} catch (error) {
+					console.error(
+						"Connection is dead, resetting and reconnecting",
+						error,
+					);
 					// Connection is dead, reset and reconnect
 					db = null;
 				}

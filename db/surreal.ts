@@ -1,14 +1,8 @@
-import Surreal from "surrealdb";
+import Surreal, { ConnectOptions } from "surrealdb";
 
 // Define the database configuration interface
-interface DatabaseConfig {
-  url: string;
-  namespace: string;
-  database: string;
-  auth: {
-    username: string;
-    password: string;
-  };
+interface DatabaseConfig extends ConnectOptions {
+  url: Parameters<Surreal['connect']>[0];
 }
 
 // Define the default database configuration
@@ -29,11 +23,7 @@ export async function getDatabase(
   const db = new Surreal();
 
   try {
-    await db.connect(config.url, {
-      namespace: config.namespace,
-      database: config.database,
-      auth: { username: config.auth.username, password: config.auth.password },
-    });
+    await db.connect(config.url, config);
     return db;
   } catch (err) {
     console.error(

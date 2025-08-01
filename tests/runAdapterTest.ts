@@ -1,6 +1,6 @@
 // Based on packages/better-auth/src/adapters/test.ts
 
-import { generateId } from "better-auth";
+import { generateId, Session } from "better-auth";
 import type { Adapter, BetterAuthOptions, User } from "better-auth/types";
 import { expect, test } from "bun:test";
 import { RecordId } from "surrealdb";
@@ -13,19 +13,20 @@ interface AdapterTestOptions {
 
 export async function runAdapterTest(opts: AdapterTestOptions) {
 	const adapter = await opts.getAdapter();
-	const user = {
+	const user: User = {
 		id: "1",
-		name: "user",
-		email: "user@email.com",
+		name: "user1",
+		email: "user1@email.com",
 		emailVerified: true,
 		createdAt: new Date(),
 		updatedAt: new Date(),
 	};
 
 	test("create model", async () => {
-		const res = await adapter.create({
+		const res = await adapter.create<User>({
 			model: "user",
 			data: user,
+			forceAllowId: true,
 		});
 
 		expect({
@@ -122,6 +123,7 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 		const user = await adapter.create<User>({
 			model: "user",
 			data: {
+				// @ts-expect-error forceAllowId: true
 				id: "2",
 				name: "user2",
 				email: "test@email.com",
@@ -129,6 +131,7 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			},
+			forceAllowId: true,
 		});
 		const res = await adapter.findMany({
 			model: "user",
@@ -146,13 +149,15 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 		const newUser = await adapter.create<User>({
 			model: "user",
 			data: {
+				// @ts-expect-error forceAllowId: true
 				id: "3",
-				name: "user",
-				email: "test-email2@email.com",
+				name: "user3",
+				email: "user3@email.com",
 				emailVerified: true,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			},
+			forceAllowId: true,
 		});
 		const res = await adapter.findMany({
 			model: "user",
@@ -168,20 +173,23 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 	});
 
 	test("should work with reference fields", async () => {
-		const user = await adapter.create<{ id: string } & Record<string, any>>({
+		const user = await adapter.create<User>({
 			model: "user",
 			data: {
+				// @ts-expect-error forceAllowId: true
 				id: "4",
-				name: "user",
-				email: "my-email@email.com",
+				name: "user4",
+				email: "user4@email.com",
 				emailVerified: true,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			},
+			forceAllowId: true,
 		});
-		await adapter.create({
+		await adapter.create<Session>({
 			model: "session",
 			data: {
+				// @ts-expect-error forceAllowId: true
 				id: "1",
 				token: generateId(),
 				createdAt: new Date(),
@@ -189,6 +197,7 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 				userId: user.id,
 				expiresAt: new Date(),
 			},
+			forceAllowId: true,
 		});
 		const res = await adapter.findOne({
 			model: "session",
@@ -205,9 +214,10 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 	});
 
 	test("should find many with sortBy", async () => {
-		await adapter.create({
+		await adapter.create<User>({
 			model: "user",
 			data: {
+				// @ts-expect-error forceAllowId: true
 				id: "5",
 				name: "a",
 				email: "a@email.com",
@@ -215,6 +225,7 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			},
+			forceAllowId: true,
 		});
 		const res = await adapter.findMany<User>({
 			model: "user",
@@ -308,9 +319,10 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 
 	test("should delete many", async () => {
 		for (const id of ["to-be-delete1", "to-be-delete2", "to-be-delete3"]) {
-			await adapter.create({
+			await adapter.create<User>({
 				model: "user",
 				data: {
+					// @ts-expect-error: forceAllowId: true
 					id,
 					name: "to-be-deleted",
 					email: `email@test-${id}.com`,
@@ -318,6 +330,7 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 					createdAt: new Date(),
 					updatedAt: new Date(),
 				},
+				forceAllowId: true,
 			});
 		}
 		const findResFirst = await adapter.findMany({
@@ -432,28 +445,26 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 		expect(res.length).toBe(1);
 	});
 
-	test.skipIf(opts.skipGenerateIdTest || false)(
-		"should prefer generateId if provided",
-		async () => {
-			const customAdapter = await opts.getAdapter({
-				advanced: {
+	test("should prefer generateId if provided", async () => {
+		const customAdapter = await opts.getAdapter({
+			advanced: {
+				database: {
 					generateId: () => 'mocked-id',
-				},
-			});
+				}
+			},
+		});
 
-			const res = await customAdapter.create({
-				model: "user",
-				data: {
-					id: "1",
-					name: "user4",
-					email: "user4@email.com",
-					emailVerified: true,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				},
-			});
-			expect(res.id).toBeInstanceOf(RecordId);
-			expect((res.id as unknown as RecordId).id).toBe('mocked-id');
-		},
-	);
+		const res = await customAdapter.create<User>({
+			model: "user",
+			data: {
+				name: "user6",
+				email: "user6@email.com",
+				emailVerified: true,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			},
+		});
+
+		expect(res.id).toBe(new RecordId("user", "mocked-id").toString());
+	});
 }

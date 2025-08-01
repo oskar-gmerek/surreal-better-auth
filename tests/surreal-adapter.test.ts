@@ -13,7 +13,7 @@ describe("adapter test", async () => {
       DEFINE NAMESPACE IF NOT EXISTS better_auth;
       DEFINE DATABASE IF NOT EXISTS better_auth;
       DELETE user;
-      DELETE session
+      DELETE sessions;
       `,
     );
   }
@@ -43,7 +43,6 @@ describe("adapter test", async () => {
         ...customOptions,
       });
     },
-    skipGenerateIdTest: true,
   });
 });
 
@@ -56,7 +55,7 @@ describe("simple-flow", async () => {
     },
   );
   const testUser = {
-    email: "test-eamil@email.com",
+    email: "test@email.com",
     password: "password",
     name: "Test Name",
   };

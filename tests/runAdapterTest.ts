@@ -7,8 +7,7 @@ import { RecordId } from "surrealdb";
 interface AdapterTestOptions {
 	getAdapter: (
 		customOptions?: Omit<BetterAuthOptions, "database">,
-	) => Promise<Adapter>;
-	skipGenerateIdTest?: boolean;
+	) => Promise<Adapter>
 }
 
 export async function runAdapterTest(opts: AdapterTestOptions) {

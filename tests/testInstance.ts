@@ -31,7 +31,7 @@ export async function getTestInstance<
 ) {
   const db = await getDatabase({
     url: "http://127.0.0.1:8000/rpc",
-    namespace: "better_auth_test",
+    namespace: "better_auth",
     database: "better_auth_test",
     auth: { username: "root", password: "root" },
   });

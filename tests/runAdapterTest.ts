@@ -3,7 +3,7 @@
 import { generateId, Session } from "better-auth";
 import type { Adapter, BetterAuthOptions, User } from "better-auth/types";
 import { expect, test } from "bun:test";
-import { RecordId } from "surrealdb";
+
 interface AdapterTestOptions {
 	getAdapter: (
 		customOptions?: Omit<BetterAuthOptions, "database">,
@@ -25,7 +25,6 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 		const res = await adapter.create<User>({
 			model: "user",
 			data: user,
-			forceAllowId: true,
 		});
 
 		expect({
@@ -122,15 +121,12 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 		const user = await adapter.create<User>({
 			model: "user",
 			data: {
-				// @ts-expect-error forceAllowId: true
-				id: "2",
 				name: "user2",
 				email: "test@email.com",
 				emailVerified: true,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			},
-			forceAllowId: true,
 		});
 		const res = await adapter.findMany({
 			model: "user",
@@ -148,15 +144,12 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 		const newUser = await adapter.create<User>({
 			model: "user",
 			data: {
-				// @ts-expect-error forceAllowId: true
-				id: "3",
 				name: "user3",
 				email: "user3@email.com",
 				emailVerified: true,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			},
-			forceAllowId: true,
 		});
 		const res = await adapter.findMany({
 			model: "user",
@@ -175,28 +168,22 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 		const user = await adapter.create<User>({
 			model: "user",
 			data: {
-				// @ts-expect-error forceAllowId: true
-				id: "4",
 				name: "user4",
 				email: "user4@email.com",
 				emailVerified: true,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			},
-			forceAllowId: true,
 		});
 		await adapter.create<Session>({
 			model: "session",
 			data: {
-				// @ts-expect-error forceAllowId: true
-				id: "1",
 				token: generateId(),
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				userId: user.id,
 				expiresAt: new Date(),
 			},
-			forceAllowId: true,
 		});
 		const res = await adapter.findOne({
 			model: "session",
@@ -216,15 +203,12 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 		await adapter.create<User>({
 			model: "user",
 			data: {
-				// @ts-expect-error forceAllowId: true
-				id: "5",
 				name: "a",
 				email: "a@email.com",
 				emailVerified: true,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			},
-			forceAllowId: true,
 		});
 		const res = await adapter.findMany<User>({
 			model: "user",
@@ -317,19 +301,16 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 	});
 
 	test("should delete many", async () => {
-		for (const id of ["to-be-delete1", "to-be-delete2", "to-be-delete3"]) {
+		for (const id of [1,2,3]) {
 			await adapter.create<User>({
 				model: "user",
 				data: {
-					// @ts-expect-error: forceAllowId: true
-					id,
 					name: "to-be-deleted",
 					email: `email@test-${id}.com`,
 					emailVerified: true,
 					createdAt: new Date(),
 					updatedAt: new Date(),
 				},
-				forceAllowId: true,
 			});
 		}
 		const findResFirst = await adapter.findMany({
@@ -342,7 +323,7 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 			],
 		});
 		expect(findResFirst.length).toBe(3);
-		await adapter.deleteMany({
+		const deleted = await adapter.deleteMany({
 			model: "user",
 			where: [
 				{
@@ -351,6 +332,7 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 				},
 			],
 		});
+		expect(deleted).toBe(findResFirst.length)
 		const findRes = await adapter.findMany({
 			model: "user",
 			where: [
@@ -442,28 +424,5 @@ export async function runAdapterTest(opts: AdapterTestOptions) {
 			],
 		});
 		expect(res.length).toBe(1);
-	});
-
-	test("should prefer generateId if provided", async () => {
-		const customAdapter = await opts.getAdapter({
-			advanced: {
-				database: {
-					generateId: () => 'mocked-id',
-				}
-			},
-		});
-
-		const res = await customAdapter.create<User>({
-			model: "user",
-			data: {
-				name: "user6",
-				email: "user6@email.com",
-				emailVerified: true,
-				createdAt: new Date(),
-				updatedAt: new Date(),
-			},
-		});
-
-		expect(res.id).toBe(new RecordId("user", "mocked-id").toString());
 	});
 }

@@ -162,6 +162,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          git pull
           git add packages/surreal-better-auth/package.json
           git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
           git push
@@ -201,6 +202,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          git pull
           git add packages/surreal-better-auth/package.json
           git commit -m "chore: release stable version ${{ env.STABLE_VERSION }} [skip ci]"
           git tag v${{ env.STABLE_VERSION }}

@@ -1,7 +1,8 @@
-  <picture align="center">
-    <source srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero.webp?raw=true" alt="surreal-better-auth banner [dark]"  media="(prefers-color-scheme: dark)">
-    <source srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero-white.webp?raw=true" alt="surreal-better-auth banner [light]" media="(prefers-color-scheme: light)">
-  </picture>
+<p align="center">
+  <img alt="surreal-better-auth banner [light]" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero-white.webp?raw=true#gh-light-mode-only">
+  <img alt="surreal-better-auth banner [dark]" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero.webp?raw=true#gh-dark-mode-only">
+</p>
+
 
 
 <h1 style="margin-top:40px;"> 🔐 SurrealDB Adapter for Better Auth </h1>

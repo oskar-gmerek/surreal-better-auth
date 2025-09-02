@@ -1,8 +1,8 @@
 import type { FullConfig } from "@playwright/test";
 import { Surreal } from "surrealdb";
-import { readFileSync, existsSync } from "fs";
-import { execSync } from "child_process";
-import { join } from "path";
+import { readFileSync, existsSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { join } from "node:path";
 
 async function globalSetup(_config: FullConfig) {
   console.log("🚀 Setting up test environment...");
@@ -92,11 +92,19 @@ async function globalSetup(_config: FullConfig) {
 function extractTableNames(schemaContent: string): string[] {
   const tableRegex = /DEFINE TABLE (?:OVERWRITE )?(\w+)/g;
   const tables = new Set<string>();
-  let match;
-
-  while ((match = tableRegex.exec(schemaContent)) !== null) {
+  let match: RegExpExecArray | null
+    while (true) {
+    match = tableRegex.exec(schemaContent);
+    if (match === null) {
+        break;
+    }
     tables.add(match[1]);
-  }
+    }
+
+//   while ((match = tableRegex.exec(schemaContent)) !== null) {
+//     tables.add(match[1]);
+//   }
+  
 
   return Array.from(tables);
 }

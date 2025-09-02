@@ -112,13 +112,13 @@ async function deleteTeam(teamId: string, teamName: string) {
     });
 
     if (result.error) {
-      errors.delete = "Failed to delete team: " + result.error.message;
+      errors.delete = `Failed to delete team: ${result.error.message}`;
     } else {
       messages.delete = `Team "${teamName}" deleted successfully!`;
       await loadTeams(); // Reload teams list
     }
   } catch (err) {
-    errors.delete = "Failed to delete team: " + (err as Error).message;
+    errors.delete = `Failed to delete team: ${(err as Error).message}`;
   } finally {
     loading.deleteTeam = false;
   }

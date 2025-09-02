@@ -43,7 +43,7 @@ export const surrealdbAdapter = (
       supportsDates: true,
       supportsJSON: true,
       customIdGenerator:
-        config?.idGenerator && config.idGenerator.startsWith("sdk.")
+        config?.idGenerator?.startsWith("sdk.")
           ? ({ model }: { model: string }) => {
               if (config?.debugLogs) {
                 logger.info(
@@ -192,7 +192,7 @@ export const surrealdbAdapter = (
             }
 
             return processResult(singleRecord ? result[0] : result[0]);
-          } else {
+          }
             // Direct record operation with additional WHERE conditions
             const bindings: Record<string, Gap<any>> = {};
             const fills: Fill<any>[] = [];
@@ -217,7 +217,6 @@ export const surrealdbAdapter = (
             }
 
             return processResult(singleRecord ? result[0] : result[0]);
-          }
         }
 
         // Fallback to standard WHERE clause query
@@ -262,7 +261,7 @@ export const surrealdbAdapter = (
               ? content.id
               : undefined;
           // Always remove id field from content
-          delete content.id;
+          content.id = undefined;
 
           // Process select parameter
           let selectFields: string | undefined;

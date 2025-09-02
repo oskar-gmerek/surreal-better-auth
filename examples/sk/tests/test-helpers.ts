@@ -123,7 +123,7 @@ export class TestHelpers {
     );
     await page.click('button:has-text("Send Verification Email")');
 
-    const verificationUrl = await this.extractVerificationUrl(page);
+    const verificationUrl = await TestHelpers.extractVerificationUrl(page);
     await page.goto(verificationUrl);
 
     await expect(page.locator("text=Email Verification")).toBeVisible();
@@ -306,7 +306,7 @@ export class TestHelpers {
     email: string,
     shouldExist = true,
   ) {
-    const db = await this.getDbConnection();
+    const db = await TestHelpers.getDbConnection();
 
     const result = await db.query<[any[]]>(
       `SELECT * FROM user WHERE email = '${email}'`,
@@ -316,17 +316,16 @@ export class TestHelpers {
     if (shouldExist) {
       expect(result[0]).toHaveLength(1);
       return result[0][0];
-    } else {
+    }
       expect(result[0]).toHaveLength(0);
       return null;
-    }
   }
 
   static async verifyOrganizationInDatabase(
     slug: string,
     shouldExist = true,
   ) {
-    const db = await this.getDbConnection();
+    const db = await TestHelpers.getDbConnection();
     const result = await db.query<[any[]]>(
       `SELECT * FROM business WHERE slug = '${slug}'`,
     );
@@ -346,7 +345,7 @@ export class TestHelpers {
     orgId: string,
     expectedRole?: string,
   ) {
-    const db = await this.getDbConnection();
+    const db = await TestHelpers.getDbConnection();
     const result = await db.query<[any[]]>(
       `SELECT * FROM member WHERE userId = '${userId}' AND organizationId = '${orgId}'`,
     );
@@ -362,7 +361,7 @@ export class TestHelpers {
   }
 
   static async cleanupAllData() {
-    const db = await this.getDbConnection();
+    const db = await TestHelpers.getDbConnection();
 
     try {
       const tables = [

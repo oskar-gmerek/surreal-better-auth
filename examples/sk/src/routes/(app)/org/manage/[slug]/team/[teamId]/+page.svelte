@@ -156,13 +156,13 @@ async function updateTeam(event: SubmitEvent) {
     });
 
     if (error) {
-      errors.update = "Failed to update team: " + error.message;
+      errors.update = `Failed to update team: ${error.message}`;
     } else {
       messages.update = "Team updated successfully!";
       team.name = updateForm.name;
     }
   } catch (err) {
-    errors.update = "Failed to update team: " + (err as Error).message;
+    errors.update = `Failed to update team: ${(err as Error).message}`;
   } finally {
     loading.updateTeam = false;
   }
@@ -183,14 +183,14 @@ async function deleteTeam() {
     });
 
     if (error) {
-      errors.delete = "Failed to delete team: " + error.message;
+      errors.delete = `Failed to delete team: ${error.message}`;
     } else {
       messages.delete = "Team deleted successfully!";
       // Redirect to organization management after successful deletion
       setTimeout(() => goto(`/org/manage/${slug}`), 2000);
     }
   } catch (err) {
-    errors.delete = "Failed to delete team: " + (err as Error).message;
+    errors.delete = `Failed to delete team: ${(err as Error).message}`;
   } finally {
     loading.deleteTeam = false;
   }
@@ -208,7 +208,7 @@ async function addTeamMember(event: SubmitEvent) {
     } as any);
 
     if (error) {
-      errors.members = "Failed to add member: " + error.message;
+      errors.members = `Failed to add member: ${error.message}`;
     } else {
       messages.members = "Member added successfully!";
       addMemberForm.userId = "";
@@ -216,7 +216,7 @@ async function addTeamMember(event: SubmitEvent) {
       await loadTeamMembers();
     }
   } catch (err) {
-    errors.members = "Failed to add member: " + (err as Error).message;
+    errors.members = `Failed to add member: ${(err as Error).message}`;
   } finally {
     loading.addMember = false;
   }
@@ -233,13 +233,13 @@ async function removeTeamMember(userId: string) {
     });
 
     if (error) {
-      errors.members = "Failed to remove member: " + error.message;
+      errors.members = `Failed to remove member: ${error.message}`;
     } else {
       messages.members = "Member removed successfully!";
       await loadTeamMembers();
     }
   } catch (err) {
-    errors.members = "Failed to remove member: " + (err as Error).message;
+    errors.members = `Failed to remove member: ${(err as Error).message}`;
   } finally {
     loading.removeMember = false;
   }

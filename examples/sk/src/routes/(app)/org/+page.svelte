@@ -118,7 +118,7 @@ async function createOrganization(event: SubmitEvent) {
     } as any);
 
     if (error) {
-      errors.createOrg = "Failed to create organization: " + error.message;
+      errors.createOrg = `Failed to create organization: ${error.message}`;
     } else {
       messages.createOrg = "Organization created successfully!";
       createOrgForm = { name: "", slug: "", logo: "", myCustomField: "" };
@@ -128,7 +128,7 @@ async function createOrganization(event: SubmitEvent) {
     }
   } catch (err) {
     errors.createOrg =
-      "Failed to create organization: " + (err as Error).message;
+      `Failed to create organization: ${(err as Error).message}`;
   } finally {
     loading.createOrg = false;
   }
@@ -144,7 +144,7 @@ async function setActiveOrg(orgId: string) {
     });
 
     if (error) {
-      errors.general = "Failed to set active organization: " + error.message;
+      errors.general = `Failed to set active organization: ${error.message}`;
     } else {
       messages.general = "Active organization updated!";
       // Reset data for the new organization
@@ -156,7 +156,7 @@ async function setActiveOrg(orgId: string) {
     }
   } catch (err) {
     errors.general =
-      "Failed to set active organization: " + (err as Error).message;
+      `Failed to set active organization: ${(err as Error).message}`;
   } finally {
     loading.setActive = false;
   }
@@ -175,7 +175,7 @@ async function inviteMember(event: SubmitEvent) {
 
     if (inviteResult.error) {
       errors.invite =
-        "Failed to send invitation: " + inviteResult.error.message;
+        `Failed to send invitation: ${inviteResult.error.message}`;
     } else {
       const invitationId = inviteResult.data?.id || "unknown";
       messages.invite = `Invitation sent successfully! Invitation ID: ${invitationId}`;
@@ -184,7 +184,7 @@ async function inviteMember(event: SubmitEvent) {
       await loadInvitations();
     }
   } catch (err) {
-    errors.invite = "Failed to send invitation: " + (err as Error).message;
+    errors.invite = `Failed to send invitation: ${(err as Error).message}`;
   } finally {
     loading.invite = false;
   }
@@ -264,13 +264,13 @@ async function removeMember(memberEmail: string) {
     });
 
     if (error) {
-      errors.general = "Failed to remove member: " + error.message;
+      errors.general = `Failed to remove member: ${error.message}`;
     } else {
       messages.general = "Member removed successfully!";
       await loadMembers();
     }
   } catch (err) {
-    errors.general = "Failed to remove member: " + (err as Error).message;
+    errors.general = `Failed to remove member: ${(err as Error).message}`;
   }
 }
 
@@ -281,13 +281,13 @@ async function cancelInvitation(invitationId: string) {
     });
 
     if (error) {
-      errors.general = "Failed to cancel invitation: " + error.message;
+      errors.general = `Failed to cancel invitation: ${error.message}`;
     } else {
       messages.general = "Invitation cancelled successfully!";
       await loadInvitations();
     }
   } catch (err) {
-    errors.general = "Failed to cancel invitation: " + (err as Error).message;
+    errors.general = `Failed to cancel invitation: ${(err as Error).message}`;
   }
 }
 
@@ -314,7 +314,7 @@ async function acceptInvitation(invitationId: string) {
     });
 
     if (error) {
-      errors.userInvitations = "Failed to accept invitation: " + error.message;
+      errors.userInvitations = `Failed to accept invitation: ${error.message}`;
     } else {
       messages.userInvitations = "Invitation accepted successfully!";
       await loadUserInvitations();
@@ -322,7 +322,7 @@ async function acceptInvitation(invitationId: string) {
     }
   } catch (err) {
     errors.userInvitations =
-      "Failed to accept invitation: " + (err as Error).message;
+      `Failed to accept invitation: ${(err as Error).message}`;
   } finally {
     loading.acceptInvitation = false;
   }
@@ -336,14 +336,14 @@ async function rejectInvitation(invitationId: string) {
     });
 
     if (error) {
-      errors.userInvitations = "Failed to reject invitation: " + error.message;
+      errors.userInvitations = `Failed to reject invitation: ${error.message}`;
     } else {
       messages.userInvitations = "Invitation rejected successfully!";
       await loadUserInvitations();
     }
   } catch (err) {
     errors.userInvitations =
-      "Failed to reject invitation: " + (err as Error).message;
+      `Failed to reject invitation: ${(err as Error).message}`;
   } finally {
     loading.rejectInvitation = false;
   }
@@ -360,7 +360,7 @@ async function createTeam(event: SubmitEvent) {
     });
 
     if (error) {
-      errors.createTeam = "Failed to create team: " + error.message;
+      errors.createTeam = `Failed to create team: ${error.message}`;
     } else {
       messages.createTeam = "Team created successfully!";
       createTeamForm = { name: "" };
@@ -368,7 +368,7 @@ async function createTeam(event: SubmitEvent) {
       await loadTeams();
     }
   } catch (err) {
-    errors.createTeam = "Failed to create team: " + (err as Error).message;
+    errors.createTeam = `Failed to create team: ${(err as Error).message}`;
   } finally {
     loading.createTeam = false;
   }

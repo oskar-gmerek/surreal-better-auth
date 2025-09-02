@@ -98,7 +98,7 @@ async function updateProfile(event: SubmitEvent) {
 
     messages.profile = "Profile updated successfully!";
   } catch (err) {
-    errors.profile = "Failed to update profile: " + (err as Error).message;
+    errors.profile = `Failed to update profile: ${(err as Error).message}`;
   } finally {
     loading.profile = false;
   }
@@ -132,7 +132,7 @@ async function changePassword(event: SubmitEvent) {
       confirmPassword: "",
     };
   } catch (err) {
-    errors.password = "Failed to change password: " + (err as Error).message;
+    errors.password = `Failed to change password: ${(err as Error).message}`;
   } finally {
     loading.password = false;
   }
@@ -152,7 +152,7 @@ async function changeEmail(event: SubmitEvent) {
       "Email change request sent! Check your new email for verification.";
     emailForm.newEmail = "";
   } catch (err) {
-    errors.email = "Failed to change email: " + (err as Error).message;
+    errors.email = `Failed to change email: ${(err as Error).message}`;
   } finally {
     loading.email = false;
   }
@@ -170,7 +170,7 @@ async function sendEmailVerification() {
     messages.emailVerification = "Verification email sent! Check your inbox.";
   } catch (err) {
     errors.emailVerification =
-      "Failed to send verification email: " + (err as Error).message;
+      `Failed to send verification email: ${(err as Error).message}`;
   } finally {
     loading.emailVerification = false;
   }
@@ -192,7 +192,7 @@ async function deleteAccount() {
     goto("/");
   } catch (err) {
     errors.deleteAccount =
-      "Failed to delete account: " + (err as Error).message;
+      `Failed to delete account: ${(err as Error).message}`;
   } finally {
     loading.deleteAccount = false;
   }

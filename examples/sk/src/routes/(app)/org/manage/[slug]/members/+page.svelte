@@ -108,7 +108,7 @@ async function inviteMember(event: SubmitEvent) {
     });
 
     if (result.error) {
-      errors.invite = "Failed to send invitation: " + result.error.message;
+      errors.invite = `Failed to send invitation: ${result.error.message}`;
     } else {
       messages.invite = "Invitation sent successfully!";
       inviteForm = { email: "", role: "member" };
@@ -116,7 +116,7 @@ async function inviteMember(event: SubmitEvent) {
       await loadMembers(); // Reload to show new invitation
     }
   } catch (err) {
-    errors.invite = "Failed to send invitation: " + (err as Error).message;
+    errors.invite = `Failed to send invitation: ${(err as Error).message}`;
   } finally {
     loading.invite = false;
   }

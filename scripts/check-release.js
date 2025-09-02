@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { execSync } from "child_process";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const PACKAGE_PATH = "packages/surreal-better-auth";
 
@@ -34,7 +34,7 @@ function getCurrentVersion() {
 
 function checkNpmStatus() {
   try {
-    const published = run(`npm view surreal-better-auth version`);
+    const published = run("npm view surreal-better-auth version");
     return published;
   } catch {
     return "Not published";
@@ -76,11 +76,11 @@ function main() {
   // Recent tags
   const tags = run("git tag -l --sort=-version:refname | head -3");
   if (tags) {
-    console.log(`🏷️  Recent Tags:`);
+    console.log("🏷️  Recent Tags:");
     tags.split("\n").forEach((tag) => console.log(`   ${tag}`));
   }
 
-  console.log("\n" + "=".repeat(50));
+  console.log(`\n${"=".repeat(50)}`);
   console.log("ℹ️  New branch-based release flow");
 
   if (git.clean) {

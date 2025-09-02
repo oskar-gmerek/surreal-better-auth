@@ -16,11 +16,15 @@
       "recommended": true,
       "suspicious": {
         "noExplicitAny": "off"
+      },
+      "complexity": {
+        "noForEach": "off",
+        "noStaticOnlyClass": "off"
       }
     }
   },
   "files": {
-    "ignore": [".svelte-kit", "ref", "docs", "dist", "build", "node_modules"]
+    "ignore": [".svelte-kit", "ref", "docs", "dist", "build", "node_modules", "backups"]
   },
   "javascript": {
     "formatter": {

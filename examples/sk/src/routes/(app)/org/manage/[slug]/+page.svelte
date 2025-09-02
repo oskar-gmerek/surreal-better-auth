@@ -115,13 +115,13 @@ async function updateOrganization(event: SubmitEvent) {
     } as any);
 
     if (error) {
-      errors.update = "Failed to update organization: " + error.message;
+      errors.update = `Failed to update organization: ${error.message}`;
     } else {
       messages.update = "Organization updated successfully!";
       await loadOrganization(); // Reload to get updated data
     }
   } catch (err) {
-    errors.update = "Failed to update organization: " + (err as Error).message;
+    errors.update = `Failed to update organization: ${(err as Error).message}`;
   } finally {
     loading.updateOrg = false;
   }
@@ -142,14 +142,14 @@ async function deleteOrganization() {
     });
 
     if (error) {
-      errors.delete = "Failed to delete organization: " + error.message;
+      errors.delete = `Failed to delete organization: ${error.message}`;
     } else {
       messages.delete = "Organization deleted successfully!";
       // Redirect to organizations list after successful deletion
       setTimeout(() => goto("/org"), 2000);
     }
   } catch (err) {
-    errors.delete = "Failed to delete organization: " + (err as Error).message;
+    errors.delete = `Failed to delete organization: ${(err as Error).message}`;
   } finally {
     loading.deleteOrg = false;
   }

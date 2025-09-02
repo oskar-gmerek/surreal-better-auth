@@ -127,19 +127,19 @@ export function logQuery(
   ) {
     if (method === "create" && !config.debugLogs.create) {
       return;
-    } else if (method === "update" && !config.debugLogs.update) {
+    }if (method === "update" && !config.debugLogs.update) {
       return;
-    } else if (method === "updateMany" && !config.debugLogs.updateMany) {
+    }if (method === "updateMany" && !config.debugLogs.updateMany) {
       return;
-    } else if (method === "findOne" && !config.debugLogs.findOne) {
+    }if (method === "findOne" && !config.debugLogs.findOne) {
       return;
-    } else if (method === "findMany" && !config.debugLogs.findMany) {
+    }if (method === "findMany" && !config.debugLogs.findMany) {
       return;
-    } else if (method === "delete" && !config.debugLogs.delete) {
+    }if (method === "delete" && !config.debugLogs.delete) {
       return;
-    } else if (method === "deleteMany" && !config.debugLogs.deleteMany) {
+    }if (method === "deleteMany" && !config.debugLogs.deleteMany) {
       return;
-    } else if (method === "count" && !config.debugLogs.count) {
+    }if (method === "count" && !config.debugLogs.count) {
       return;
     }
   }
@@ -628,7 +628,6 @@ export function generateCreateQuery(
       case "surreal.guid":
         targetClause = `type::thing('${tableName}', rand::guid())`;
         break;
-      case "surreal":
       default: // Includes `sdk.*` and undefined
         targetClause = `type::table('${tableName}')`;
         break;

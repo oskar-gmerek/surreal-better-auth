@@ -27,7 +27,7 @@ async function loadSessions() {
       error = "Failed to load sessions";
     }
   } catch (err) {
-    error = "Error loading sessions: " + (err as Error).message;
+    error = `Error loading sessions: ${(err as Error).message}`;
   } finally {
     loading = false;
   }
@@ -38,7 +38,7 @@ async function revokeSession(token: string) {
     await authClient.revokeSession({ token });
     await loadSessions(); // Reload sessions
   } catch (err) {
-    error = "Failed to revoke session: " + (err as Error).message;
+    error = `Failed to revoke session: ${(err as Error).message}`;
   }
 }
 
@@ -47,7 +47,7 @@ async function revokeAllOtherSessions() {
     await authClient.revokeOtherSessions();
     await loadSessions(); // Reload sessions
   } catch (err) {
-    error = "Failed to revoke other sessions: " + (err as Error).message;
+    error = `Failed to revoke other sessions: ${(err as Error).message}`;
   }
 }
 
@@ -71,11 +71,10 @@ function getDeviceInfo(userAgent: string | null) {
   // Simple device detection
   if (userAgent.includes("Mobile") || userAgent.includes("Android")) {
     return "📱 Mobile Device";
-  } else if (userAgent.includes("iPad") || userAgent.includes("Tablet")) {
+  }if (userAgent.includes("iPad") || userAgent.includes("Tablet")) {
     return "📱 Tablet";
-  } else {
-    return "💻 Desktop";
   }
+    return "💻 Desktop";
 }
 
 function getBrowserInfo(userAgent: string | null) {

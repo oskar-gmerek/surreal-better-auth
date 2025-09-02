@@ -82,7 +82,7 @@ async function createTeam(event: SubmitEvent) {
     });
 
     if (result.error) {
-      errors.create = "Failed to create team: " + result.error.message;
+      errors.create = `Failed to create team: ${result.error.message}`;
     } else {
       messages.create = "Team created successfully!";
       // Redirect to teams list after successful creation
@@ -91,7 +91,7 @@ async function createTeam(event: SubmitEvent) {
       }, 2000);
     }
   } catch (err) {
-    errors.create = "Failed to create team: " + (err as Error).message;
+    errors.create = `Failed to create team: ${(err as Error).message}`;
   } finally {
     loading.createTeam = false;
   }

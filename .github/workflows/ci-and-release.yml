@@ -130,16 +130,17 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - name: Setup Node.js for npm
+      - name: Setup Node.js for versioning
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
 
+      # --- BETA ---
       - name: Perform Beta Release
         if: github.ref == 'refs/heads/beta'
         run: |
           cd packages/surreal-better-auth
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
           node -e '
             const fs = require("fs"); const path = "./package.json"; const pkg = JSON.parse(fs.readFileSync(path, "utf8")); let current = pkg.version; let newVersion;
             if (current.includes("-beta.")) { let [main, beta] = current.split("-beta."); newVersion = `${main}-beta.${parseInt(beta) + 1}`; } else { newVersion = `${current}-beta.0`; }
@@ -147,9 +148,6 @@ jobs:
             fs.appendFileSync(process.env.GITHUB_ENV, `NEW_VERSION=${newVersion}\n`);
           '
           bun publish --tag beta
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Commit and push version bump (Beta)
         if: github.ref == 'refs/heads/beta'
@@ -169,10 +167,12 @@ jobs:
           prerelease: true
           generate_release_notes: true
 
+      # --- STABLE ---
       - name: Perform Stable Release
         if: github.ref == 'refs/heads/main'
         run: |
           cd packages/surreal-better-auth
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
           node -e '
             const fs = require("fs"); const path = "./package.json"; const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
             let stableVersion = pkg.version.split("-beta.")[0]; pkg.version = stableVersion;
@@ -180,9 +180,6 @@ jobs:
             fs.appendFileSync(process.env.GITHUB_ENV, `STABLE_VERSION=${stableVersion}\n`);
           '
           bun publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Commit, tag and push (Stable)
         if: github.ref == 'refs/heads/main'

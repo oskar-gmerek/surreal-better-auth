@@ -127,8 +127,7 @@ async function createOrganization(event: SubmitEvent) {
       $organizations.refetch();
     }
   } catch (err) {
-    errors.createOrg =
-      `Failed to create organization: ${(err as Error).message}`;
+    errors.createOrg = `Failed to create organization: ${(err as Error).message}`;
   } finally {
     loading.createOrg = false;
   }
@@ -155,8 +154,7 @@ async function setActiveOrg(orgId: string) {
       activeTab = "overview";
     }
   } catch (err) {
-    errors.general =
-      `Failed to set active organization: ${(err as Error).message}`;
+    errors.general = `Failed to set active organization: ${(err as Error).message}`;
   } finally {
     loading.setActive = false;
   }
@@ -174,8 +172,7 @@ async function inviteMember(event: SubmitEvent) {
     });
 
     if (inviteResult.error) {
-      errors.invite =
-        `Failed to send invitation: ${inviteResult.error.message}`;
+      errors.invite = `Failed to send invitation: ${inviteResult.error.message}`;
     } else {
       const invitationId = inviteResult.data?.id || "unknown";
       messages.invite = `Invitation sent successfully! Invitation ID: ${invitationId}`;
@@ -321,8 +318,7 @@ async function acceptInvitation(invitationId: string) {
       await $organizations.refetch();
     }
   } catch (err) {
-    errors.userInvitations =
-      `Failed to accept invitation: ${(err as Error).message}`;
+    errors.userInvitations = `Failed to accept invitation: ${(err as Error).message}`;
   } finally {
     loading.acceptInvitation = false;
   }
@@ -342,8 +338,7 @@ async function rejectInvitation(invitationId: string) {
       await loadUserInvitations();
     }
   } catch (err) {
-    errors.userInvitations =
-      `Failed to reject invitation: ${(err as Error).message}`;
+    errors.userInvitations = `Failed to reject invitation: ${(err as Error).message}`;
   } finally {
     loading.rejectInvitation = false;
   }

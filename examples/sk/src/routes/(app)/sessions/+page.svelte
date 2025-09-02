@@ -71,10 +71,11 @@ function getDeviceInfo(userAgent: string | null) {
   // Simple device detection
   if (userAgent.includes("Mobile") || userAgent.includes("Android")) {
     return "📱 Mobile Device";
-  }if (userAgent.includes("iPad") || userAgent.includes("Tablet")) {
+  }
+  if (userAgent.includes("iPad") || userAgent.includes("Tablet")) {
     return "📱 Tablet";
   }
-    return "💻 Desktop";
+  return "💻 Desktop";
 }
 
 function getBrowserInfo(userAgent: string | null) {

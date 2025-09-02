@@ -169,8 +169,7 @@ async function sendEmailVerification() {
 
     messages.emailVerification = "Verification email sent! Check your inbox.";
   } catch (err) {
-    errors.emailVerification =
-      `Failed to send verification email: ${(err as Error).message}`;
+    errors.emailVerification = `Failed to send verification email: ${(err as Error).message}`;
   } finally {
     loading.emailVerification = false;
   }
@@ -191,8 +190,7 @@ async function deleteAccount() {
     // Redirect to home after successful deletion
     goto("/");
   } catch (err) {
-    errors.deleteAccount =
-      `Failed to delete account: ${(err as Error).message}`;
+    errors.deleteAccount = `Failed to delete account: ${(err as Error).message}`;
   } finally {
     loading.deleteAccount = false;
   }

@@ -127,19 +127,26 @@ export function logQuery(
   ) {
     if (method === "create" && !config.debugLogs.create) {
       return;
-    }if (method === "update" && !config.debugLogs.update) {
+    }
+    if (method === "update" && !config.debugLogs.update) {
       return;
-    }if (method === "updateMany" && !config.debugLogs.updateMany) {
+    }
+    if (method === "updateMany" && !config.debugLogs.updateMany) {
       return;
-    }if (method === "findOne" && !config.debugLogs.findOne) {
+    }
+    if (method === "findOne" && !config.debugLogs.findOne) {
       return;
-    }if (method === "findMany" && !config.debugLogs.findMany) {
+    }
+    if (method === "findMany" && !config.debugLogs.findMany) {
       return;
-    }if (method === "delete" && !config.debugLogs.delete) {
+    }
+    if (method === "delete" && !config.debugLogs.delete) {
       return;
-    }if (method === "deleteMany" && !config.debugLogs.deleteMany) {
+    }
+    if (method === "deleteMany" && !config.debugLogs.deleteMany) {
       return;
-    }if (method === "count" && !config.debugLogs.count) {
+    }
+    if (method === "count" && !config.debugLogs.count) {
       return;
     }
   }

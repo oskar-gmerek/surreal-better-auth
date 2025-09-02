@@ -92,19 +92,18 @@ async function globalSetup(_config: FullConfig) {
 function extractTableNames(schemaContent: string): string[] {
   const tableRegex = /DEFINE TABLE (?:OVERWRITE )?(\w+)/g;
   const tables = new Set<string>();
-  let match: RegExpExecArray | null
-    while (true) {
+  let match: RegExpExecArray | null;
+  while (true) {
     match = tableRegex.exec(schemaContent);
     if (match === null) {
-        break;
+      break;
     }
     tables.add(match[1]);
-    }
+  }
 
-//   while ((match = tableRegex.exec(schemaContent)) !== null) {
-//     tables.add(match[1]);
-//   }
-  
+  //   while ((match = tableRegex.exec(schemaContent)) !== null) {
+  //     tables.add(match[1]);
+  //   }
 
   return Array.from(tables);
 }

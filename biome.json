@@ -24,7 +24,15 @@
     }
   },
   "files": {
-    "ignore": [".svelte-kit", "ref", "docs", "dist", "build", "node_modules", "backups"]
+    "ignore": [
+      ".svelte-kit",
+      "ref",
+      "docs",
+      "dist",
+      "build",
+      "node_modules",
+      "backups"
+    ]
   },
   "javascript": {
     "formatter": {

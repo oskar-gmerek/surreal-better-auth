@@ -42,26 +42,25 @@ export const surrealdbAdapter = (
       supportsBooleans: true,
       supportsDates: true,
       supportsJSON: true,
-      customIdGenerator:
-        config?.idGenerator?.startsWith("sdk.")
-          ? ({ model }: { model: string }) => {
-              if (config?.debugLogs) {
-                logger.info(
-                  `[surreal-better-auth]: Generating custom ID for model: ${model} using ${config.idGenerator} `,
-                );
-              }
-              switch (config.idGenerator) {
-                case "sdk.UUIDv4":
-                  return Uuid.v4().toString();
-                case "sdk.UUIDv7":
-                  return Uuid.v7().toString();
-                default:
-                  throw new Error(
-                    `Invalid ID generator type: ${config.idGenerator}. Supported types: "sdk.UUIDv4", "sdk.UUIDv7", "surreal", "surreal.ULID", "surreal.UUID", "surreal.UUIDv4", "surreal.UUIDv7", "surreal.guid"`,
-                  );
-              }
+      customIdGenerator: config?.idGenerator?.startsWith("sdk.")
+        ? ({ model }: { model: string }) => {
+            if (config?.debugLogs) {
+              logger.info(
+                `[surreal-better-auth]: Generating custom ID for model: ${model} using ${config.idGenerator} `,
+              );
             }
-          : undefined,
+            switch (config.idGenerator) {
+              case "sdk.UUIDv4":
+                return Uuid.v4().toString();
+              case "sdk.UUIDv7":
+                return Uuid.v7().toString();
+              default:
+                throw new Error(
+                  `Invalid ID generator type: ${config.idGenerator}. Supported types: "sdk.UUIDv4", "sdk.UUIDv7", "surreal", "surreal.ULID", "surreal.UUID", "surreal.UUIDv4", "surreal.UUIDv7", "surreal.guid"`,
+                );
+            }
+          }
+        : undefined,
       disableIdGeneration: config?.idGenerator?.startsWith("surreal") ?? false,
       customTransformOutput({ data }) {
         if (data === undefined) return null;
@@ -193,30 +192,30 @@ export const surrealdbAdapter = (
 
             return processResult(singleRecord ? result[0] : result[0]);
           }
-            // Direct record operation with additional WHERE conditions
-            const bindings: Record<string, Gap<any>> = {};
-            const fills: Fill<any>[] = [];
+          // Direct record operation with additional WHERE conditions
+          const bindings: Record<string, Gap<any>> = {};
+          const fills: Fill<any>[] = [];
 
-            if (content !== undefined) {
-              bindings.content = new Gap<any>();
-              fills.push(bindings.content.fill(content));
-            }
+          if (content !== undefined) {
+            bindings.content = new Gap<any>();
+            fills.push(bindings.content.fill(content));
+          }
 
-            const whereStr = buildWhereClausePartsFn(bindings, fills, {
-              where: remainingWhere,
-              model,
-            });
-            const queryString = directQuery + whereStr + suffix;
+          const whereStr = buildWhereClausePartsFn(bindings, fills, {
+            where: remainingWhere,
+            model,
+          });
+          const queryString = directQuery + whereStr + suffix;
 
-            const query = new PreparedQuery(queryString, bindings);
-            logQuery(config, debugLog, method, query, fills);
-            const result = await db.query<[any[]]>(query, fills);
+          const query = new PreparedQuery(queryString, bindings);
+          logQuery(config, debugLog, method, query, fills);
+          const result = await db.query<[any[]]>(query, fills);
 
-            if (returnCount) {
-              return result[0]?.length || 0;
-            }
+          if (returnCount) {
+            return result[0]?.length || 0;
+          }
 
-            return processResult(singleRecord ? result[0] : result[0]);
+          return processResult(singleRecord ? result[0] : result[0]);
         }
 
         // Fallback to standard WHERE clause query

@@ -302,10 +302,7 @@ export class TestHelpers {
     await page.waitForURL(`/org/${orgSlug}`);
   }
 
-  static async verifyUserInDatabase(
-    email: string,
-    shouldExist = true,
-  ) {
+  static async verifyUserInDatabase(email: string, shouldExist = true) {
     const db = await TestHelpers.getDbConnection();
 
     const result = await db.query<[any[]]>(
@@ -317,14 +314,11 @@ export class TestHelpers {
       expect(result[0]).toHaveLength(1);
       return result[0][0];
     }
-      expect(result[0]).toHaveLength(0);
-      return null;
+    expect(result[0]).toHaveLength(0);
+    return null;
   }
 
-  static async verifyOrganizationInDatabase(
-    slug: string,
-    shouldExist = true,
-  ) {
+  static async verifyOrganizationInDatabase(slug: string, shouldExist = true) {
     const db = await TestHelpers.getDbConnection();
     const result = await db.query<[any[]]>(
       `SELECT * FROM business WHERE slug = '${slug}'`,

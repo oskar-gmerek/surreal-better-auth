@@ -202,7 +202,7 @@ export class TestHelpers {
     page: Page,
     orgSlug: string,
     email: string,
-    role: string = "member",
+    role = "member",
   ) {
     // Go to organizations page
     await page.goto("/org");
@@ -304,7 +304,7 @@ export class TestHelpers {
 
   static async verifyUserInDatabase(
     email: string,
-    shouldExist: boolean = true,
+    shouldExist = true,
   ) {
     const db = await this.getDbConnection();
 
@@ -324,7 +324,7 @@ export class TestHelpers {
 
   static async verifyOrganizationInDatabase(
     slug: string,
-    shouldExist: boolean = true,
+    shouldExist = true,
   ) {
     const db = await this.getDbConnection();
     const result = await db.query<[any[]]>(

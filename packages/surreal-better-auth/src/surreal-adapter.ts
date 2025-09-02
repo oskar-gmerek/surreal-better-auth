@@ -1,5 +1,5 @@
 import {
-  RecordId,
+  type RecordId,
   PreparedQuery,
   Uuid,
   Gap,

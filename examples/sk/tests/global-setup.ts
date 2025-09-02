@@ -1,4 +1,4 @@
-import { type FullConfig } from "@playwright/test";
+import type { FullConfig } from "@playwright/test";
 import { Surreal } from "surrealdb";
 import { readFileSync, existsSync } from "fs";
 import { execSync } from "child_process";

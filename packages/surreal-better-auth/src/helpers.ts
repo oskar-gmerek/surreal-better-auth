@@ -182,10 +182,10 @@ export function logQuery(
     },
   };
   function formatLogLine(lang: string, query: string) {
-    let transationId = `${colors.fg.magenta}###`;
-    let stepString = `${colors.bg.black}${colors.fg.yellow}[0/#]${colors.reset}`;
-    let methodString = `${colors.bright}${method}`;
-    let preparedString = `${colors.dim}(PreparedQuery)${colors.reset}:`;
+    const transationId = `${colors.fg.magenta}###`;
+    const stepString = `${colors.bg.black}${colors.fg.yellow}[0/#]${colors.reset}`;
+    const methodString = `${colors.bright}${method}`;
+    const preparedString = `${colors.dim}(PreparedQuery)${colors.reset}:`;
     const PADDING = "  ";
     let formattedString = `${colors.bg.obsidian_violet}`;
     formattedString += PADDING;

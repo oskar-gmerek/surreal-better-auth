@@ -21,7 +21,9 @@
     "create:schema": "cd examples/sk &&  bun run create:schema",
     "biome:check": "bunx --bun biome format .",
     "biome:format": "bunx --bun biome format --write .",
-    "biome:lint": "bunx --bun biome lint"
+    "biome:lint": "bunx --bun biome lint .",
+    "biome:fix": "bunx --bun biome lint --write .",
+    "biome:unsafefix": "bunx --bun biome lint --write --unsafe ."
   },
   "type": "module",
   "workspaces": ["packages/*", "examples/*"]

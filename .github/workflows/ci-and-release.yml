@@ -1,6 +1,8 @@
 name: CI and Release
 
 on:
+  pull_request:
+    branches: [ main, beta ]
   push:
     branches: [ main, beta ]
 
@@ -20,31 +22,48 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        
       - name: Start SurrealDB
         uses: surrealdb/setup-surreal@v2
-        with: { surrealdb_version: latest, surrealdb_port: 8000, surrealdb_username: root, surrealdb_password: root, surrealdb_log: info, surrealdb_additional_args: --allow-all }
+        with:
+          surrealdb_version: latest
+          surrealdb_port: 8000
+          surrealdb_username: root
+          surrealdb_password: root
+          surrealdb_log: info
+          surrealdb_additional_args: --allow-all
+          
       - name: Setup Node.js
         if: matrix.runtime.type == 'node'
         uses: actions/setup-node@v4
-        with: { node-version: ${{ matrix.runtime.version }} }
+        with:
+          node-version: ${{ matrix.runtime.version }}
+          
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-        with: { bun-version: latest }
+        with:
+          bun-version: latest
+          
       - name: Install dependencies
         run: bun install
+        
       - name: Build package
         run: bun run build
+        
       - name: Wait for SurrealDB
         run: |
           echo "Waiting for SurrealDB..."
           until curl --fail http://localhost:8000/status; do sleep 1; done
           echo "SurrealDB is ready!"
+          
       - name: Run adapter tests (Node.js)
         if: matrix.runtime.type == 'node'
         run: npm run test:adapter
+        
       - name: Run adapter tests (Bun)
         if: matrix.runtime.type == 'bun'
         run: bun run test:adapter
+        
       - name: Run integration tests
         if: matrix.runtime.type == 'bun'
         working-directory: examples/sk
@@ -52,7 +71,15 @@ jobs:
           bun install
           bunx playwright install --with-deps
           bunx playwright test
-        env: { CI: true, SURREALDB_URL: http://localhost:8000, SURREALDB_USER: root, SURREALDB_PASS: root, SURREALDB_NS: test, SURREALDB_DB: example-sveltekit }
+
+        env:
+          CI: true
+          SURREALDB_URL: http://localhost:8000
+          SURREALDB_USER: root
+          SURREALDB_PASS: root
+          SURREALDB_NS: test
+          SURREALDB_DB: example-sveltekit
+          
       - name: Stop SurrealDB
         if: always()
         run: echo "Cleaning up..."
@@ -66,7 +93,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-        with: { bun-version: latest }
+        with:
+          bun-version: latest
       - name: Install dependencies
         run: bun install
       - name: Build package
@@ -81,7 +109,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     name: Release to NPM
-
     if: github.event_name == 'push'
     permissions:
       contents: write
@@ -89,7 +116,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
       
       - name: Download build artifact
         uses: actions/download-artifact@v4
@@ -99,11 +127,14 @@ jobs:
           
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-        with: { bun-version: latest }
+        with:
+          bun-version: latest
         
       - name: Setup Node.js for npm
         uses: actions/setup-node@v4
-        with: { node-version: '18', registry-url: 'https://registry.npmjs.org' }
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
 
       # --- BETA ---
       - name: Perform Beta Release

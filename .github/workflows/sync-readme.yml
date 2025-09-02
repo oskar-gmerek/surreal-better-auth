@@ -5,6 +5,7 @@ on:
     branches: [main, beta]
     paths:
       - 'packages/surreal-better-auth/README.md'
+      - 'bottom.md'
   workflow_dispatch:
 
 jobs:
@@ -18,31 +19,35 @@ jobs:
 
       - name: Sync README
         run: |
-          # Check if the placeholder exists in README.md
-          if ! grep -q "<!-- include: packages/surreal-better-auth/README.md -->" README.md; then
-            echo "Placeholder not found in README.md"
+          # Check if bottom.md template exists
+          if [ ! -f "bottom.md" ]; then
+            echo "Template file bottom.md not found"
             exit 1
           fi
           
-          # Replace the include placeholder with actual content
-          if [ -f "packages/surreal-better-auth/README.md" ]; then
-            # Create temp file with package content and fix image paths
-            cp packages/surreal-better-auth/README.md /tmp/package-readme.md
-            
-            # Fix all relative paths starting with ./ to point to the correct location in monorepo
-            sed -i 's|src="\./|src="./packages/surreal-better-auth/|g' /tmp/package-readme.md
-            sed -i 's|srcset="\./|srcset="./packages/surreal-better-auth/|g' /tmp/package-readme.md
-            sed -i 's|href="\./|href="./packages/surreal-better-auth/|g' /tmp/package-readme.md
-            
-            # Use sed to replace the include line with file content
-            sed -i '/<!-- include: packages\/surreal-better-auth\/README\.md -->/r /tmp/package-readme.md' README.md
-            sed -i '/<!-- include: packages\/surreal-better-auth\/README\.md -->/d' README.md
-            
-            echo "Successfully synced package README content"
-          else
+          # Check if package README exists
+          if [ ! -f "packages/surreal-better-auth/README.md" ]; then
             echo "Package README.md not found"
             exit 1
           fi
+          
+          # Create main README.md from bottom.md template
+          echo "Creating main README.md from bottom.md template..."
+          cp bottom.md README.md
+          
+          # Prepare package content with fixed image paths
+          cp packages/surreal-better-auth/README.md /tmp/package-readme.md
+          
+          # Fix all relative paths starting with ./ to point to the correct location in monorepo
+          sed -i 's|src="\./|src="./packages/surreal-better-auth/|g' /tmp/package-readme.md
+          sed -i 's|srcset="\./|srcset="./packages/surreal-better-auth/|g' /tmp/package-readme.md
+          sed -i 's|href="\./|href="./packages/surreal-better-auth/|g' /tmp/package-readme.md
+          
+          # Replace the include placeholder with actual content
+          sed -i '/<!-- include: packages\/surreal-better-auth\/README\.md -->/r /tmp/package-readme.md' README.md
+          sed -i '/<!-- include: packages\/surreal-better-auth\/README\.md -->/d' README.md
+          
+          echo "Successfully synced package README content"
 
       - name: Commit changes
         run: |

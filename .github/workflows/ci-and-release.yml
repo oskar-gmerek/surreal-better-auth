@@ -55,13 +55,28 @@ jobs:
       - name: Run adapter tests (Bun)
         if: matrix.runtime.type == 'bun'
         run: bun run test:adapter
+      
+      - name: Install example dependencies
+        if: matrix.runtime.type == 'bun'
+        working-directory: examples/sk
+        run: bun install
+      - name: Cache Playwright Browsers
+        if: matrix.runtime.type == 'bun'
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+      - name: Install Playwright Browsers
+        if: matrix.runtime.type == 'bun' && steps.cache-playwright.outputs.cache-hit != 'true'
+        working-directory: examples/sk
+        run: bunx playwright install --with-deps
       - name: Run integration tests
         if: matrix.runtime.type == 'bun'
         working-directory: examples/sk
-        run: |
-          bun install
-          bunx playwright install --with-deps
-          bunx playwright test
+        run: bunx playwright test
         env:
           CI: true
           SURREALDB_URL: http://localhost:8000
@@ -69,6 +84,7 @@ jobs:
           SURREALDB_PASS: root
           SURREALDB_NS: test
           SURREALDB_DB: example-sveltekit
+          
       - name: Stop SurrealDB
         if: always()
         run: echo "Cleaning up..."
@@ -130,25 +146,23 @@ jobs:
         if: github.ref == 'refs/heads/beta'
         run: |
           cd packages/surreal-better-auth
-
-          node -e "
-            const fs = require('fs');
-            const path = './package.json';
-            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+          node -e '
+            const fs = require("fs");
+            const path = "./package.json";
+            const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
             let current = pkg.version;
             let newVersion;
-            if (current.includes('-beta.')) {
-              let [main, beta] = current.split('-beta.');
+            if (current.includes("-beta.")) {
+              let [main, beta] = current.split("-beta.");
               newVersion = `${main}-beta.${parseInt(beta) + 1}`;
             } else {
               newVersion = `${current}-beta.0`;
             }
             pkg.version = newVersion;
-            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
             console.log(`Version bumped to ${newVersion}`);
             fs.appendFileSync(process.env.GITHUB_ENV, `NEW_VERSION=${newVersion}\n`);
-          "
-
+          '
           bun publish --tag beta
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -176,18 +190,16 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           cd packages/surreal-better-auth
-
-          node -e "
-            const fs = require('fs');
-            const path = './package.json';
-            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-            let stableVersion = pkg.version.split('-beta.')[0];
+          node -e '
+            const fs = require("fs");
+            const path = "./package.json";
+            const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
+            let stableVersion = pkg.version.split("-beta.")[0];
             pkg.version = stableVersion;
-            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
             console.log(`Version bumped to ${stableVersion}`);
             fs.appendFileSync(process.env.GITHUB_ENV, `STABLE_VERSION=${stableVersion}\n`);
-          "
-
+          '
           bun publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

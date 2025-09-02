@@ -59,7 +59,7 @@ jobs:
       - name: Check formatting
         run: bun run biome:check
 
-      - name: Check formatting
+      - name: Run linter
         run: bun run biome:lint
 
       - name: Build package

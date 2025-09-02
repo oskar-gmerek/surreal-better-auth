@@ -1,6 +1,9 @@
 <p align="center">
-  <img alt="surreal-better-auth banner [light]" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero-white.webp?raw=true#gh-light-mode-only">
-  <img alt="surreal-better-auth banner [dark]" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero.webp?raw=true#gh-dark-mode-only">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero.webp?raw=true">
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero-white.webp?raw=true">
+    <img alt="surreal-better-auth banner" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero.webp?raw=true">
+  </picture>
 </p>
 
 <h1 style="margin-top:40px;"> 🔐 SurrealDB Adapter for Better Auth </h1>
@@ -20,7 +23,7 @@ This adapter seamlessly integrates SurrealDB's advanced querying capabilities wi
 > [!NOTE]  
 >  🎁 **New to SurrealDB?** [Sign up with our referral link](https://app.surrealdb.com/referral?code=4pn5aba943lpbn8l) and get **free cloud hosting** plus a **special welcome discount** to kickstart your project!
 
---- 
+---
 
 ## ✨ Features
 

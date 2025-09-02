@@ -70,19 +70,36 @@ jobs:
 
       - name: Run adapter tests (Node.js)
         if: matrix.runtime.type == 'node'
-        run: npm run test:adapter 
+        run: npm run test:adapter
 
       - name: Run adapter tests (Bun)
         if: matrix.runtime.type == 'bun'
-        run: bun run test:adapter 
+        run: bun run test:adapter
         
+      - name: Install example dependencies
+        if: matrix.runtime.type == 'bun'
+        working-directory: examples/sk
+        run: bun install
+
+      - name: Cache Playwright Browsers
+        if: matrix.runtime.type == 'bun'
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright Browsers
+        if: matrix.runtime.type == 'bun' && steps.cache-playwright.outputs.cache-hit != 'true'
+        working-directory: examples/sk
+        run: bunx playwright install --with-deps
+
       - name: Run integration tests
         if: matrix.runtime.type == 'bun'
         working-directory: examples/sk
-        run: |
-          bun install
-          bunx playwright install --with-deps
-          bunx playwright test
+        run: bunx playwright test
         env:
           CI: true
           SURREALDB_URL: http://localhost:8000
@@ -94,6 +111,7 @@ jobs:
       - name: Stop SurrealDB
         if: always()
         run: echo "Cleaning up... SurrealDB service will stop automatically."
+
 
   build:
     needs: test

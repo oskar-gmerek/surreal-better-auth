@@ -3,8 +3,6 @@
   <img alt="surreal-better-auth banner [dark]" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero.webp?raw=true#gh-dark-mode-only">
 </p>
 
-
-
 <h1 style="margin-top:40px;"> 🔐 SurrealDB Adapter for Better Auth </h1>
 
 ![GitHub Created At](https://img.shields.io/github/created-at/oskar-gmerek/surreal-better-auth?style=for-the-badge&color=%233ca916)
@@ -98,7 +96,7 @@ You can configure ID generation in two ways:
 | `"surreal"`         | Database     | SurrealDB generates `default` SurrealDB ID                                   |
 | `"surreal.guid"`    | Database     | SurrealDB generates 20 digit alphanumeric `GUID`                             |
 | `"surreal.ULID"`    | Database     | SurrealDB generates `ULID`                                                   |
-| `"surreal.UUID"`    | Database     | SurrealDB generates default version `UUID` (currently v7)                |
+| `"surreal.UUID"`    | Database     | SurrealDB generates default version `UUID` (currently v7)                    |
 | `"surreal.UUIDv4"`  | Database     | SurrealDB generates `UUID v4` (random-based, most common)                    |
 | `"surreal.UUIDv7"`  | Database     | SurrealDB generates `UUID v7` (time-based, sortable)                         |
 | `undefined`         | Better Auth  | Better Auth generates ID (`default`, or generated via `generateId` function) |

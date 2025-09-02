@@ -23,7 +23,10 @@ import {
   generateCreateQuery,
 } from "./helpers";
 import { generateSchema } from "./schema";
-import type { ExecuteOptimizedQueryOptions, SurrealDBAdapterConfig } from "./types";
+import type {
+  ExecuteOptimizedQueryOptions,
+  SurrealDBAdapterConfig,
+} from "./types";
 
 export const surrealdbAdapter = (
   db: Surreal,
@@ -42,22 +45,22 @@ export const surrealdbAdapter = (
       customIdGenerator:
         config?.idGenerator && config.idGenerator.startsWith("sdk.")
           ? ({ model }: { model: string }) => {
-            if (config?.debugLogs) {
-              logger.info(
-                `[surreal-better-auth]: Generating custom ID for model: ${model} using ${config.idGenerator} `,
-              );
-            }
-            switch (config.idGenerator) {
-              case "sdk.UUIDv4":
-                return Uuid.v4().toString();
-              case "sdk.UUIDv7":
-                return Uuid.v7().toString();
-              default:
-                throw new Error(
-                  `Invalid ID generator type: ${config.idGenerator}. Supported types: "sdk.UUIDv4", "sdk.UUIDv7", "surreal", "surreal.ULID", "surreal.UUID", "surreal.UUIDv4", "surreal.UUIDv7", "surreal.guid"`,
+              if (config?.debugLogs) {
+                logger.info(
+                  `[surreal-better-auth]: Generating custom ID for model: ${model} using ${config.idGenerator} `,
                 );
+              }
+              switch (config.idGenerator) {
+                case "sdk.UUIDv4":
+                  return Uuid.v4().toString();
+                case "sdk.UUIDv7":
+                  return Uuid.v7().toString();
+                default:
+                  throw new Error(
+                    `Invalid ID generator type: ${config.idGenerator}. Supported types: "sdk.UUIDv4", "sdk.UUIDv7", "surreal", "surreal.ULID", "surreal.UUID", "surreal.UUIDv4", "surreal.UUIDv7", "surreal.guid"`,
+                  );
+              }
             }
-          }
           : undefined,
       disableIdGeneration: config?.idGenerator?.startsWith("surreal") ?? false,
       customTransformOutput({ data }) {
@@ -71,7 +74,7 @@ export const surrealdbAdapter = (
       getFieldName,
       getDefaultModelName,
       getDefaultFieldName,
-      debugLog
+      debugLog,
     }) => {
       const recordIdMap = buildRecordIdMap(
         (options as any)?.schema?.tables,
@@ -147,7 +150,9 @@ export const surrealdbAdapter = (
           generateId,
         );
 
-      async function executeOptimizedQuery(options: ExecuteOptimizedQueryOptions): Promise<any> {
+      async function executeOptimizedQuery(
+        options: ExecuteOptimizedQueryOptions,
+      ): Promise<any> {
         const {
           method,
           model,
@@ -158,7 +163,7 @@ export const surrealdbAdapter = (
           suffix = "",
           processResult = (r: any) => r,
           returnCount = false,
-          singleRecord = false
+          singleRecord = false,
         } = options;
 
         // Check for direct record access optimization
@@ -197,7 +202,10 @@ export const surrealdbAdapter = (
               fills.push(bindings.content.fill(content));
             }
 
-            const whereStr = buildWhereClausePartsFn(bindings, fills, { where: remainingWhere, model });
+            const whereStr = buildWhereClausePartsFn(bindings, fills, {
+              where: remainingWhere,
+              model,
+            });
             const queryString = directQuery + whereStr + suffix;
 
             const query = new PreparedQuery(queryString, bindings);
@@ -221,7 +229,10 @@ export const surrealdbAdapter = (
           fills.push(bindings.content.fill(content));
         }
 
-        const whereStr = buildWhereClausePartsFn(bindings, fills, { where: where || [], model });
+        const whereStr = buildWhereClausePartsFn(bindings, fills, {
+          where: where || [],
+          model,
+        });
         const queryString = baseQuery + whereStr + suffix;
 
         const query = new PreparedQuery(queryString, bindings);
@@ -247,7 +258,7 @@ export const surrealdbAdapter = (
           const customId =
             (config?.allowPassingId ||
               config?.idGenerator?.startsWith("sdk.")) &&
-              content.id
+            content.id
               ? content.id
               : undefined;
           // Always remove id field from content
@@ -274,7 +285,7 @@ export const surrealdbAdapter = (
             selectFields,
           );
 
-          logQuery(config, debugLog, 'create', query, fills);
+          logQuery(config, debugLog, "create", query, fills);
 
           const result = await db.query<[any[]]>(query, fills);
           return recordIdsToStrings(result[0][0]);
@@ -286,19 +297,20 @@ export const surrealdbAdapter = (
             ? typeof select === "string"
               ? getFieldName({ model, field: select })
               : (select as string[])
-                .map((f) => getFieldName({ model, field: f }))
-                .join(", ")
+                  .map((f) => getFieldName({ model, field: f }))
+                  .join(", ")
             : "*";
 
           return executeOptimizedQuery({
-            method: 'findOne',
+            method: "findOne",
             model,
             where,
             baseQuery: `SELECT ${selectFields} FROM ONLY ${tableName}`,
-            directRecordQuery: (recordIds: RecordId[]) => `SELECT ${selectFields} FROM ONLY ${recordIds[0].toString()}`,
+            directRecordQuery: (recordIds: RecordId[]) =>
+              `SELECT ${selectFields} FROM ONLY ${recordIds[0].toString()}`,
             suffix: buildQuerySuffixFn({ limitOne: true }),
             processResult: (result: any) => recordIdsToStrings(result) || null,
-            singleRecord: true
+            singleRecord: true,
           });
         },
 
@@ -307,13 +319,14 @@ export const surrealdbAdapter = (
           const selectClause = "*";
 
           return executeOptimizedQuery({
-            method: 'findMany',
+            method: "findMany",
             model,
             where,
             baseQuery: `SELECT ${selectClause} FROM ${tableName}`,
-            directRecordQuery: (recordIds: RecordId[]) => `SELECT ${selectClause} FROM [${recordIds.map((id: RecordId) => id.toString()).join(", ")}]`,
+            directRecordQuery: (recordIds: RecordId[]) =>
+              `SELECT ${selectClause} FROM [${recordIds.map((id: RecordId) => id.toString()).join(", ")}]`,
             suffix: buildQuerySuffixFn({ sortBy, limit, offset, model }),
-            processResult: recordIdsToStrings
+            processResult: recordIdsToStrings,
           });
         },
 
@@ -321,14 +334,15 @@ export const surrealdbAdapter = (
           const tableName = getModelName(model);
 
           return executeOptimizedQuery({
-            method: 'count',
+            method: "count",
             model,
             where,
             baseQuery: `SELECT count() FROM ${tableName}`,
-            directRecordQuery: (recordIds: RecordId[]) => `SELECT count() FROM [${recordIds.map((r: RecordId) => r.toString()).join(", ")}]`,
+            directRecordQuery: (recordIds: RecordId[]) =>
+              `SELECT count() FROM [${recordIds.map((r: RecordId) => r.toString()).join(", ")}]`,
             suffix: buildQuerySuffixFn({ groupAll: true }),
             processResult: (result: any) => result[0].count || 0,
-            singleRecord: true
+            singleRecord: true,
           });
         },
 
@@ -340,15 +354,16 @@ export const surrealdbAdapter = (
           );
 
           return executeOptimizedQuery({
-            method: 'update',
+            method: "update",
             model,
             where,
             baseQuery: `UPDATE ONLY ${tableName} MERGE $content`,
-            directRecordQuery: (recordIds: RecordId[]) => `UPDATE ONLY ${recordIds[0].toString()} MERGE $content`,
+            directRecordQuery: (recordIds: RecordId[]) =>
+              `UPDATE ONLY ${recordIds[0].toString()} MERGE $content`,
             content,
             suffix: buildQuerySuffixFn({ returnAfter: true }),
             processResult: (result: any) => recordIdsToStrings(result) || null,
-            singleRecord: true
+            singleRecord: true,
           });
         },
 
@@ -360,13 +375,14 @@ export const surrealdbAdapter = (
           );
 
           return executeOptimizedQuery({
-            method: 'updateMany',
+            method: "updateMany",
             model,
             where,
             baseQuery: `UPDATE ${tableName} MERGE $content`,
-            directRecordQuery: (recordIds: RecordId[]) => `UPDATE [${recordIds.map((r: RecordId) => r.toString()).join(", ")}] MERGE $content`,
+            directRecordQuery: (recordIds: RecordId[]) =>
+              `UPDATE [${recordIds.map((r: RecordId) => r.toString()).join(", ")}] MERGE $content`,
             content,
-            returnCount: true
+            returnCount: true,
           });
         },
 
@@ -374,12 +390,13 @@ export const surrealdbAdapter = (
           const tableName = getModelName(model);
 
           return executeOptimizedQuery({
-            method: 'delete',
+            method: "delete",
             model,
             where,
             baseQuery: `DELETE ${tableName}`,
-            directRecordQuery: (recordIds: RecordId[]) => `DELETE ${recordIds[0].toString()}`,
-            processResult: () => undefined
+            directRecordQuery: (recordIds: RecordId[]) =>
+              `DELETE ${recordIds[0].toString()}`,
+            processResult: () => undefined,
           });
         },
 
@@ -387,12 +404,13 @@ export const surrealdbAdapter = (
           const tableName = getModelName(model);
 
           return executeOptimizedQuery({
-            method: 'deleteMany',
+            method: "deleteMany",
             model,
             where,
             baseQuery: `DELETE ${tableName}`,
-            directRecordQuery: (recordIds: RecordId[]) => `DELETE [${recordIds.map((r: RecordId) => r.toString()).join(", ")}]`,
-            returnCount: true
+            directRecordQuery: (recordIds: RecordId[]) =>
+              `DELETE [${recordIds.map((r: RecordId) => r.toString()).join(", ")}]`,
+            returnCount: true,
           });
         },
 

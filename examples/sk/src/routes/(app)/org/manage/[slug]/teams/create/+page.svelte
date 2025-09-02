@@ -1,105 +1,105 @@
 <script lang="ts">
-    import { page } from "$app/stores";
-    import { goto } from "$app/navigation";
-    import { authClient } from "$lib/auth-client";
-    import { Button } from "bits-ui";
-    import { onMount } from "svelte";
+import { page } from "$app/stores";
+import { goto } from "$app/navigation";
+import { authClient } from "$lib/auth-client";
+import { Button } from "bits-ui";
+import { onMount } from "svelte";
 
-    const session = authClient.useSession();
-    const orgsResult = authClient.useListOrganizations();
+const session = authClient.useSession();
+const orgsResult = authClient.useListOrganizations();
 
-    // Redirect if not authenticated
-    $effect(() => {
-        if (!$session.isPending && !$session.isRefetching && !$session.data) {
-            goto("/auth/sign/in");
-        }
-    });
+// Redirect if not authenticated
+$effect(() => {
+  if (!$session.isPending && !$session.isRefetching && !$session.data) {
+    goto("/auth/sign/in");
+  }
+});
 
-    let slug = $derived($page.params.slug);
-    let organization = $state<any>(null);
+let slug = $derived($page.params.slug);
+let organization = $state<any>(null);
 
-    let loading = $state({
-        loadOrg: true,
-        createTeam: false,
-    });
+let loading = $state({
+  loadOrg: true,
+  createTeam: false,
+});
 
-    let messages = $state({
-        create: "",
-    });
+let messages = $state({
+  create: "",
+});
 
-    let errors = $state({
-        create: "",
-    });
+let errors = $state({
+  create: "",
+});
 
-    // Form state
-    let createForm = $state({
-        name: "",
-        description: "",
-    });
+// Form state
+let createForm = $state({
+  name: "",
+  description: "",
+});
 
-    function clearMessages() {
-        messages.create = "";
-        errors.create = "";
+function clearMessages() {
+  messages.create = "";
+  errors.create = "";
+}
+
+async function loadOrganization() {
+  try {
+    loading.loadOrg = true;
+
+    const organizations = $orgsResult.data || [];
+    const foundOrg = organizations.find((org: any) => org.slug === slug);
+
+    if (!foundOrg) {
+      goto("/org");
+      return;
     }
 
-    async function loadOrganization() {
-        try {
-            loading.loadOrg = true;
-
-            const organizations = $orgsResult.data || [];
-            const foundOrg = organizations.find((org: any) => org.slug === slug);
-
-            if (!foundOrg) {
-                goto("/org");
-                return;
-            }
-
-            await authClient.organization.setActive({
-                organizationId: foundOrg.id,
-            });
-
-            const fullOrgResult = await authClient.organization.getFullOrganization();
-            if (fullOrgResult.data) {
-                organization = fullOrgResult.data;
-            }
-        } catch (err) {
-            console.error("Failed to load organization:", err);
-            goto("/org");
-        } finally {
-            loading.loadOrg = false;
-        }
-    }
-
-    async function createTeam(event: SubmitEvent) {
-        event.preventDefault();
-        try {
-            loading.createTeam = true;
-            clearMessages();
-
-            const result = await authClient.organization.createTeam({
-                name: createForm.name.trim(),
-                description: createForm.description.trim() || undefined,
-            });
-
-            if (result.error) {
-                errors.create = "Failed to create team: " + result.error.message;
-            } else {
-                messages.create = "Team created successfully!";
-                // Redirect to teams list after successful creation
-                setTimeout(() => {
-                    goto(`/org/manage/${organization.slug}/teams`);
-                }, 2000);
-            }
-        } catch (err) {
-            errors.create = "Failed to create team: " + (err as Error).message;
-        } finally {
-            loading.createTeam = false;
-        }
-    }
-
-    onMount(() => {
-        loadOrganization();
+    await authClient.organization.setActive({
+      organizationId: foundOrg.id,
     });
+
+    const fullOrgResult = await authClient.organization.getFullOrganization();
+    if (fullOrgResult.data) {
+      organization = fullOrgResult.data;
+    }
+  } catch (err) {
+    console.error("Failed to load organization:", err);
+    goto("/org");
+  } finally {
+    loading.loadOrg = false;
+  }
+}
+
+async function createTeam(event: SubmitEvent) {
+  event.preventDefault();
+  try {
+    loading.createTeam = true;
+    clearMessages();
+
+    const result = await authClient.organization.createTeam({
+      name: createForm.name.trim(),
+      description: createForm.description.trim() || undefined,
+    });
+
+    if (result.error) {
+      errors.create = "Failed to create team: " + result.error.message;
+    } else {
+      messages.create = "Team created successfully!";
+      // Redirect to teams list after successful creation
+      setTimeout(() => {
+        goto(`/org/manage/${organization.slug}/teams`);
+      }, 2000);
+    }
+  } catch (err) {
+    errors.create = "Failed to create team: " + (err as Error).message;
+  } finally {
+    loading.createTeam = false;
+  }
+}
+
+onMount(() => {
+  loadOrganization();
+});
 </script>
 
 <div class="container">

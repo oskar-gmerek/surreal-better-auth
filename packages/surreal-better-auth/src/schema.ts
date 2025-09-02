@@ -8,9 +8,12 @@ import type { GenerateSchemaParams, GenerateSchemaResult } from "./types";
 /**
  * Generates SurrealDB schema from Better Auth table definitions with proper field types and indexes.
  */
-export function generateSchema(params: GenerateSchemaParams): GenerateSchemaResult {
-  const { file, tables, getModelName, getFieldName, getReferencedModel } = params;
-  
+export function generateSchema(
+  params: GenerateSchemaParams,
+): GenerateSchemaResult {
+  const { file, tables, getModelName, getFieldName, getReferencedModel } =
+    params;
+
   const schemaLines: string[] = [];
   const date = new Date();
   const formatted = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")} at ${String(date.getUTCHours()).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(2, "0")}:${String(date.getUTCSeconds()).padStart(2, "0")} UTC`;
@@ -67,10 +70,7 @@ export function generateSchema(params: GenerateSchemaParams): GenerateSchemaResu
         field: "accountId",
       });
 
-      if (
-        tableName === accountModelName &&
-        fieldName === accountIdFieldName
-      ) {
+      if (tableName === accountModelName && fieldName === accountIdFieldName) {
         return `record<${userModelName}> | string`;
       }
     } catch (e) {
@@ -78,10 +78,8 @@ export function generateSchema(params: GenerateSchemaParams): GenerateSchemaResu
     }
 
     try {
-      const oauthAccessTokenModelName =
-        getModelName("oauthAccessToken");
-      const oauthApplicationModelName =
-        getModelName("oauthApplication");
+      const oauthAccessTokenModelName = getModelName("oauthAccessToken");
+      const oauthApplicationModelName = getModelName("oauthApplication");
       const oauthAccessTokenIdFieldName = getFieldName({
         model: "oauthAccessToken",
         field: "clientId",
@@ -99,8 +97,7 @@ export function generateSchema(params: GenerateSchemaParams): GenerateSchemaResu
 
     try {
       const oauthConsentModelName = getModelName("oauthConsent");
-      const oauthApplicationModelName =
-        getModelName("oauthApplication");
+      const oauthApplicationModelName = getModelName("oauthApplication");
       const oauthConsentIdFieldName = getFieldName({
         model: "oauthConsent",
         field: "clientId",
@@ -120,12 +117,12 @@ export function generateSchema(params: GenerateSchemaParams): GenerateSchemaResu
     if (referencedModel) {
       return `record<${referencedModel}>`;
     }
-    
+
     const typeMap: Record<string, string> = {
       boolean: "bool",
       date: "datetime",
     };
-    
+
     return typeMap[type || ""] || type || "any";
   }
 
@@ -155,9 +152,7 @@ export function generateSchema(params: GenerateSchemaParams): GenerateSchemaResu
         (field as any).type?.toString(),
       );
       const finalType =
-        (field as any).required === false
-          ? `option<${baseType}>`
-          : baseType;
+        (field as any).required === false ? `option<${baseType}>` : baseType;
       schemaLines.push(
         `DEFINE FIELD OVERWRITE ${fieldName} ON TABLE ${tableName} TYPE ${finalType};`,
       );
@@ -206,9 +201,9 @@ export function generateSchema(params: GenerateSchemaParams): GenerateSchemaResu
   }
 
   const path = file ?? "schema.surql";
-  return { 
-    path, 
-    code: schemaLines.join("\n"), 
-    overwrite: true 
+  return {
+    path,
+    code: schemaLines.join("\n"),
+    overwrite: true,
   };
 }

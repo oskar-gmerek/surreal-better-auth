@@ -1,43 +1,43 @@
 {
-	"name": "sk",
-	"private": true,
-	"version": "0.0.1",
-	"type": "module",
-	"scripts": {
-		"dev": "vite dev --port 3000",
-		"dev:adapter": "cd ../.. && bun run build && cd examples/sk && vite dev --port 3000",
-		"build": "vite build",
-		"preview": "vite preview",
-		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"test": "playwright test",
-		"test:ui": "playwright test --ui",
-		"test:debug": "playwright test --debug",
-		"test:headed": "playwright test --headed",
-		"test:unit": "vitest",
-		"create:schema": "bunx @better-auth/cli generate --yes"
-	},
-	"devDependencies": {
-		"@playwright/test": "1.54.1",
-		"@sveltejs/adapter-node": "5.2.13",
-		"@sveltejs/kit": "2.27.0",
-		"@sveltejs/vite-plugin-svelte": "6.1.0",
-		"@types/bun": "^1.2.21",
-		"@vitest/browser": "3.2.4",
-		"playwright": "1.54.1",
-		"svelte": "5.37.2",
-		"svelte-check": "4.3.0",
-		"typescript": "5.9.2",
-		"vite": "7.0.6",
-		"vitest": "3.2.4",
-		"vitest-browser-svelte": "1.0.0"
-	},
-	"dependencies": {
-		"@master/css.vite": "^2.0.0-rc.69",
-		"better-auth": "^1.3.7",
-		"bits-ui": "^2.9.1",
-		"surrealdb": "^1.3.2",
-		"surreal-better-auth": "workspace:*"
-	}
+  "name": "sk",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --port 3000",
+    "dev:adapter": "cd ../.. && bun run build && cd examples/sk && vite dev --port 3000",
+    "build": "vite build",
+    "preview": "vite preview",
+    "prepare": "svelte-kit sync || echo ''",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:headed": "playwright test --headed",
+    "test:unit": "vitest",
+    "create:schema": "bunx @better-auth/cli generate --yes"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.54.1",
+    "@sveltejs/adapter-node": "5.2.13",
+    "@sveltejs/kit": "2.27.0",
+    "@sveltejs/vite-plugin-svelte": "6.1.0",
+    "@types/bun": "^1.2.21",
+    "@vitest/browser": "3.2.4",
+    "playwright": "1.54.1",
+    "svelte": "5.37.2",
+    "svelte-check": "4.3.0",
+    "typescript": "5.9.2",
+    "vite": "7.0.6",
+    "vitest": "3.2.4",
+    "vitest-browser-svelte": "1.0.0"
+  },
+  "dependencies": {
+    "@master/css.vite": "^2.0.0-rc.69",
+    "better-auth": "^1.3.7",
+    "bits-ui": "^2.9.1",
+    "surrealdb": "^1.3.2",
+    "surreal-better-auth": "workspace:*"
+  }
 }

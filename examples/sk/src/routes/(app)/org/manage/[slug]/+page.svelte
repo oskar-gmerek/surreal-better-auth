@@ -1,180 +1,173 @@
 <script lang="ts">
-    import { page } from "$app/stores";
-    import { goto } from "$app/navigation";
-    import { authClient } from "$lib/auth-client";
-    import { Button } from "bits-ui";
-    import { onMount } from "svelte";
+import { page } from "$app/stores";
+import { goto } from "$app/navigation";
+import { authClient } from "$lib/auth-client";
+import { Button } from "bits-ui";
+import { onMount } from "svelte";
 
-    const session = authClient.useSession();
-    const orgsResult = authClient.useListOrganizations();
+const session = authClient.useSession();
+const orgsResult = authClient.useListOrganizations();
 
-    // Redirect if not authenticated
-    $effect(() => {
-        if (!$session.isPending && !$session.isRefetching && !$session.data) {
-            goto("/auth/sign/in");
-        }
-    });
+// Redirect if not authenticated
+$effect(() => {
+  if (!$session.isPending && !$session.isRefetching && !$session.data) {
+    goto("/auth/sign/in");
+  }
+});
 
-    let slug = $derived($page.params.slug);
-    let organization = $state<any>(null);
+let slug = $derived($page.params.slug);
+let organization = $state<any>(null);
 
-    let loading = $state({
-        loadOrg: true,
-        updateOrg: false,
-        deleteOrg: false,
-    });
+let loading = $state({
+  loadOrg: true,
+  updateOrg: false,
+  deleteOrg: false,
+});
 
-    let messages = $state({
-        update: "",
-        delete: "",
-    });
+let messages = $state({
+  update: "",
+  delete: "",
+});
 
-    let errors = $state({
-        update: "",
-        delete: "",
-    });
+let errors = $state({
+  update: "",
+  delete: "",
+});
 
-    // Form states
-    let updateForm = $state({
-        name: "",
-        logo: "",
-        myCustomField: "",
-    });
+// Form states
+let updateForm = $state({
+  name: "",
+  logo: "",
+  myCustomField: "",
+});
 
-    let showDeleteConfirm = $state(false);
-    let deleteConfirmText = $state("");
+let showDeleteConfirm = $state(false);
+let deleteConfirmText = $state("");
 
-    function clearMessages() {
-        messages.update = "";
-        messages.delete = "";
-        errors.update = "";
-        errors.delete = "";
+function clearMessages() {
+  messages.update = "";
+  messages.delete = "";
+  errors.update = "";
+  errors.delete = "";
+}
+
+async function loadOrganization() {
+  try {
+    loading.loadOrg = true;
+
+    // First, get all organizations to find the one with matching slug
+    const organizations = $orgsResult.data || [];
+
+    const foundOrg = organizations.find((org: any) => org.slug === slug);
+
+    if (!foundOrg) {
+      goto("/org");
+      return;
     }
 
-    async function loadOrganization() {
-        try {
-            loading.loadOrg = true;
-
-            // First, get all organizations to find the one with matching slug
-            const organizations = $orgsResult.data || [];
-
-            const foundOrg = organizations.find(
-                (org: any) => org.slug === slug,
-            );
-
-            if (!foundOrg) {
-                goto("/org");
-                return;
-            }
-
-            // Set as active organization to get full details
-            await authClient.organization.setActive({
-                organizationId: foundOrg.id,
-            });
-
-            // Get full organization details
-            const fullOrgResult =
-                await authClient.organization.getFullOrganization();
-
-            if (fullOrgResult.data) {
-                organization = fullOrgResult.data;
-                updateForm = {
-                    name: organization.name || "",
-                    logo: organization.logo || "",
-                    myCustomField: (organization as any).myCustomField || "",
-                };
-            }
-        } catch (err) {
-            console.error("Failed to load organization:", err);
-            goto("/org");
-        } finally {
-            loading.loadOrg = false;
-        }
-    }
-
-    async function updateOrganization(event: SubmitEvent) {
-        event.preventDefault();
-        try {
-            loading.updateOrg = true;
-            clearMessages();
-
-            // Build update data - only include non-empty fields
-            const updateData: any = {};
-
-            if (updateForm.name.trim()) {
-                updateData.name = updateForm.name.trim();
-            }
-
-            if (updateForm.logo.trim()) {
-                updateData.logo = updateForm.logo.trim();
-            }
-
-            if (updateForm.myCustomField.trim()) {
-                updateData.myCustomField = updateForm.myCustomField.trim();
-            }
-
-            const { error } = await authClient.organization.update({
-                data: updateData,
-            } as any);
-
-            if (error) {
-                errors.update =
-                    "Failed to update organization: " + error.message;
-            } else {
-                messages.update = "Organization updated successfully!";
-                await loadOrganization(); // Reload to get updated data
-            }
-        } catch (err) {
-            errors.update =
-                "Failed to update organization: " + (err as Error).message;
-        } finally {
-            loading.updateOrg = false;
-        }
-    }
-
-    async function deleteOrganization() {
-        try {
-            loading.deleteOrg = true;
-            clearMessages();
-
-            if (deleteConfirmText !== "DELETE") {
-                errors.delete = "Please type 'DELETE' to confirm";
-                return;
-            }
-
-            const { error } = await authClient.organization.delete({
-                organizationId: organization.id,
-            });
-
-            if (error) {
-                errors.delete =
-                    "Failed to delete organization: " + error.message;
-            } else {
-                messages.delete = "Organization deleted successfully!";
-                // Redirect to organizations list after successful deletion
-                setTimeout(() => goto("/org"), 2000);
-            }
-        } catch (err) {
-            errors.delete =
-                "Failed to delete organization: " + (err as Error).message;
-        } finally {
-            loading.deleteOrg = false;
-        }
-    }
-
-    function formatDate(date: string | Date) {
-        return new Date(date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    }
-
-    onMount(() => {
-        loadOrganization();
+    // Set as active organization to get full details
+    await authClient.organization.setActive({
+      organizationId: foundOrg.id,
     });
+
+    // Get full organization details
+    const fullOrgResult = await authClient.organization.getFullOrganization();
+
+    if (fullOrgResult.data) {
+      organization = fullOrgResult.data;
+      updateForm = {
+        name: organization.name || "",
+        logo: organization.logo || "",
+        myCustomField: (organization as any).myCustomField || "",
+      };
+    }
+  } catch (err) {
+    console.error("Failed to load organization:", err);
+    goto("/org");
+  } finally {
+    loading.loadOrg = false;
+  }
+}
+
+async function updateOrganization(event: SubmitEvent) {
+  event.preventDefault();
+  try {
+    loading.updateOrg = true;
+    clearMessages();
+
+    // Build update data - only include non-empty fields
+    const updateData: any = {};
+
+    if (updateForm.name.trim()) {
+      updateData.name = updateForm.name.trim();
+    }
+
+    if (updateForm.logo.trim()) {
+      updateData.logo = updateForm.logo.trim();
+    }
+
+    if (updateForm.myCustomField.trim()) {
+      updateData.myCustomField = updateForm.myCustomField.trim();
+    }
+
+    const { error } = await authClient.organization.update({
+      data: updateData,
+    } as any);
+
+    if (error) {
+      errors.update = "Failed to update organization: " + error.message;
+    } else {
+      messages.update = "Organization updated successfully!";
+      await loadOrganization(); // Reload to get updated data
+    }
+  } catch (err) {
+    errors.update = "Failed to update organization: " + (err as Error).message;
+  } finally {
+    loading.updateOrg = false;
+  }
+}
+
+async function deleteOrganization() {
+  try {
+    loading.deleteOrg = true;
+    clearMessages();
+
+    if (deleteConfirmText !== "DELETE") {
+      errors.delete = "Please type 'DELETE' to confirm";
+      return;
+    }
+
+    const { error } = await authClient.organization.delete({
+      organizationId: organization.id,
+    });
+
+    if (error) {
+      errors.delete = "Failed to delete organization: " + error.message;
+    } else {
+      messages.delete = "Organization deleted successfully!";
+      // Redirect to organizations list after successful deletion
+      setTimeout(() => goto("/org"), 2000);
+    }
+  } catch (err) {
+    errors.delete = "Failed to delete organization: " + (err as Error).message;
+  } finally {
+    loading.deleteOrg = false;
+  }
+}
+
+function formatDate(date: string | Date) {
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+onMount(() => {
+  loadOrganization();
+});
 </script>
 
 <div class="container">

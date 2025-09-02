@@ -1,18 +1,18 @@
 <script lang="ts">
-    import { authClient } from "$lib/auth-client";
-    import { Button } from "bits-ui";
+import { authClient } from "$lib/auth-client";
+import { Button } from "bits-ui";
 
-    const session = authClient.useSession();
+const session = authClient.useSession();
 
-    function formatDate(date: string | Date) {
-        return new Date(date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    }
+function formatDate(date: string | Date) {
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 </script>
 
 <div class="container">

@@ -1,60 +1,60 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
-    import { authClient, signUp } from "$lib/auth-client";
-    import { Button } from "bits-ui";
+import { goto } from "$app/navigation";
+import { authClient, signUp } from "$lib/auth-client";
+import { Button } from "bits-ui";
 
-    const session = authClient.useSession();
-    let email = $state("");
-    let name = $state("");
-    let password = $state("");
-    let confirmPassword = $state("");
-    let loading = $state(false);
-    let error = $state("");
+const session = authClient.useSession();
+let email = $state("");
+let name = $state("");
+let password = $state("");
+let confirmPassword = $state("");
+let loading = $state(false);
+let error = $state("");
 
-    const handleSignUp = async (event: SubmitEvent) => {
-        event.preventDefault();
-        loading = true;
-        error = "";
+const handleSignUp = async (event: SubmitEvent) => {
+  event.preventDefault();
+  loading = true;
+  error = "";
 
-        // Validate passwords match
-        if (password !== confirmPassword) {
-            error = "Passwords don't match";
-            loading = false;
-            return;
-        }
+  // Validate passwords match
+  if (password !== confirmPassword) {
+    error = "Passwords don't match";
+    loading = false;
+    return;
+  }
 
-        // Validate password length
-        if (password.length < 8) {
-            error = "Password must be at least 8 characters long";
-            loading = false;
-            return;
-        }
+  // Validate password length
+  if (password.length < 8) {
+    error = "Password must be at least 8 characters long";
+    loading = false;
+    return;
+  }
 
-        await signUp.email(
-            {
-                email: email,
-                password: password,
-                name: name,
-                callbackURL: "http://localhost:3000/",
-            },
-            {
-                onSuccess() {
-                    goto('/');
-                },
-                onError(context) {
-                    error = context.error.message;
-                    loading = false;
-                },
-            },
-        );
-    };
+  await signUp.email(
+    {
+      email: email,
+      password: password,
+      name: name,
+      callbackURL: "http://localhost:3000/",
+    },
+    {
+      onSuccess() {
+        goto("/");
+      },
+      onError(context) {
+        error = context.error.message;
+        loading = false;
+      },
+    },
+  );
+};
 
-    // Redirect if already authenticated
-    $effect(() => {
-        if ($session.data) {
-            goto('/');
-        }
-    });
+// Redirect if already authenticated
+$effect(() => {
+  if ($session.data) {
+    goto("/");
+  }
+});
 </script>
 
 <svelte:head>

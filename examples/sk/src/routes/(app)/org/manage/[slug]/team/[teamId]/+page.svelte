@@ -1,260 +1,263 @@
 <script lang="ts">
-    import { page } from "$app/state";
-    import { goto } from "$app/navigation";
-    import { authClient } from "$lib/auth-client";
-    import { Button } from "bits-ui";
-    import { onMount } from "svelte";
+import { page } from "$app/state";
+import { goto } from "$app/navigation";
+import { authClient } from "$lib/auth-client";
+import { Button } from "bits-ui";
+import { onMount } from "svelte";
 
-    const session = authClient.useSession();
-    const orgsResult = authClient.useListOrganizations();
-    
-    // Redirect if not authenticated
-    if (!$session.error && !$session.isPending && !$session.isRefetching && !$session.data) {
-        goto("/auth/sign/in");
+const session = authClient.useSession();
+const orgsResult = authClient.useListOrganizations();
+
+// Redirect if not authenticated
+if (
+  !$session.error &&
+  !$session.isPending &&
+  !$session.isRefetching &&
+  !$session.data
+) {
+  goto("/auth/sign/in");
+}
+
+let slug = $derived(page.params.slug);
+let teamId = $derived((page.params as any).teamId);
+let organization = $state<any>(null);
+let team = $state<any>(null);
+let teamMembers = $state<any[]>([]);
+
+let loading = $state({
+  loadTeam: true,
+  updateTeam: false,
+  deleteTeam: false,
+  loadMembers: false,
+  addMember: false,
+  removeMember: false,
+});
+
+let messages = $state({
+  update: "",
+  delete: "",
+  members: "",
+});
+
+let errors = $state({
+  update: "",
+  delete: "",
+  members: "",
+});
+
+// Form states
+let updateForm = $state({
+  name: "",
+});
+
+let addMemberForm = $state({
+  userId: "",
+});
+
+let showDeleteConfirm = $state(false);
+let deleteConfirmText = $state("");
+let showAddMemberForm = $state(false);
+
+function clearMessages() {
+  messages.update = "";
+  messages.delete = "";
+  messages.members = "";
+  errors.update = "";
+  errors.delete = "";
+  errors.members = "";
+}
+
+async function setActiveTeam() {
+  const { data, error } = await authClient.organization.setActiveTeam({
+    teamId: page.params.teamId,
+  });
+}
+
+$effect(() => {
+  setActiveTeam();
+});
+
+async function loadTeamData() {
+  try {
+    loading.loadTeam = true;
+
+    // First, get all organizations to find the one with matching slug
+    const organizations = $orgsResult.data || [];
+
+    const foundOrg = organizations.find((org: any) => org.slug === slug);
+
+    if (!foundOrg) {
+      goto("/org");
+      return;
     }
 
-    let slug = $derived(page.params.slug);
-    let teamId = $derived((page.params as any).teamId);
-    let organization = $state<any>(null);
-    let team = $state<any>(null);
-    let teamMembers = $state<any[]>([]);
-    
-    let loading = $state({
-        loadTeam: true,
-        updateTeam: false,
-        deleteTeam: false,
-        loadMembers: false,
-        addMember: false,
-        removeMember: false
+    organization = foundOrg;
+
+    // Set as active organization
+    await authClient.organization.setActive({
+      organizationId: foundOrg.id,
     });
 
-    let messages = $state({
-        update: "",
-        delete: "",
-        members: ""
+    // Get teams list to find our team
+    const teamsResult = await authClient.organization.listTeams();
+    const teams = teamsResult.data || [];
+
+    const foundTeam = teams.find((t: any) => t.id === teamId);
+
+    if (!foundTeam) {
+      goto(`/org/manage/${slug}`);
+      return;
+    }
+
+    team = foundTeam;
+    updateForm.name = team.name;
+
+    // Load team members
+    await loadTeamMembers();
+  } catch (err) {
+    console.error("Failed to load team:", err);
+    goto("/org");
+  } finally {
+    loading.loadTeam = false;
+  }
+}
+
+async function loadTeamMembers() {
+  try {
+    loading.loadMembers = true;
+    if (!page.params.teamId) return;
+    const result = await authClient.organization.listTeamMembers({
+      query: {
+        teamId: page.params.teamId,
+      },
     });
 
-    let errors = $state({
-        update: "",
-        delete: "",
-        members: ""
+    if (result.data) {
+      teamMembers = result.data;
+    }
+  } catch (err) {
+    console.error("Failed to load team members:", err);
+  } finally {
+    loading.loadMembers = false;
+  }
+}
+
+async function updateTeam(event: SubmitEvent) {
+  event.preventDefault();
+  try {
+    loading.updateTeam = true;
+    clearMessages();
+
+    const { error } = await authClient.organization.updateTeam({
+      teamId: teamId,
+      data: {
+        name: updateForm.name,
+      },
     });
 
-    // Form states
-    let updateForm = $state({
-        name: ""
+    if (error) {
+      errors.update = "Failed to update team: " + error.message;
+    } else {
+      messages.update = "Team updated successfully!";
+      team.name = updateForm.name;
+    }
+  } catch (err) {
+    errors.update = "Failed to update team: " + (err as Error).message;
+  } finally {
+    loading.updateTeam = false;
+  }
+}
+
+async function deleteTeam() {
+  try {
+    loading.deleteTeam = true;
+    clearMessages();
+
+    if (deleteConfirmText !== "DELETE") {
+      errors.delete = "Please type 'DELETE' to confirm";
+      return;
+    }
+
+    const { error } = await authClient.organization.removeTeam({
+      teamId: teamId,
     });
 
-    let addMemberForm = $state({
-        userId: ""
+    if (error) {
+      errors.delete = "Failed to delete team: " + error.message;
+    } else {
+      messages.delete = "Team deleted successfully!";
+      // Redirect to organization management after successful deletion
+      setTimeout(() => goto(`/org/manage/${slug}`), 2000);
+    }
+  } catch (err) {
+    errors.delete = "Failed to delete team: " + (err as Error).message;
+  } finally {
+    loading.deleteTeam = false;
+  }
+}
+
+async function addTeamMember(event: SubmitEvent) {
+  event.preventDefault();
+  try {
+    loading.addMember = true;
+    clearMessages();
+
+    const { error } = await authClient.organization.addTeamMember({
+      teamId: teamId,
+      userId: addMemberForm.userId,
+    } as any);
+
+    if (error) {
+      errors.members = "Failed to add member: " + error.message;
+    } else {
+      messages.members = "Member added successfully!";
+      addMemberForm.userId = "";
+      showAddMemberForm = false;
+      await loadTeamMembers();
+    }
+  } catch (err) {
+    errors.members = "Failed to add member: " + (err as Error).message;
+  } finally {
+    loading.addMember = false;
+  }
+}
+
+async function removeTeamMember(userId: string) {
+  try {
+    loading.removeMember = true;
+    clearMessages();
+
+    const { error } = await authClient.organization.removeTeamMember({
+      teamId: teamId,
+      userId: userId,
     });
 
-    let showDeleteConfirm = $state(false);
-    let deleteConfirmText = $state("");
-    let showAddMemberForm = $state(false);
-
-    function clearMessages() {
-        messages.update = "";
-        messages.delete = "";
-        messages.members = "";
-        errors.update = "";
-        errors.delete = "";
-        errors.members = "";
+    if (error) {
+      errors.members = "Failed to remove member: " + error.message;
+    } else {
+      messages.members = "Member removed successfully!";
+      await loadTeamMembers();
     }
+  } catch (err) {
+    errors.members = "Failed to remove member: " + (err as Error).message;
+  } finally {
+    loading.removeMember = false;
+  }
+}
 
-    async function setActiveTeam() {
-        const { data, error } = await authClient.organization.setActiveTeam({
-            teamId: page.params.teamId,
-        });
-    }
+function formatDate(date: string | Date) {
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
-
-    $effect(() => {
-       setActiveTeam()
-    })
-
-    async function loadTeamData() {
-        try {
-            loading.loadTeam = true;
-            
-            // First, get all organizations to find the one with matching slug
-            const organizations = $orgsResult.data || [];
-            
-            const foundOrg = organizations.find((org: any) => org.slug === slug);
-            
-            if (!foundOrg) {
-                goto("/org");
-                return;
-            }
-
-            organization = foundOrg;
-
-            // Set as active organization
-            await authClient.organization.setActive({
-                organizationId: foundOrg.id
-            });
-
-            // Get teams list to find our team
-            const teamsResult = await authClient.organization.listTeams();
-            const teams = teamsResult.data || [];
-            
-            const foundTeam = teams.find((t: any) => t.id === teamId);
-            
-            if (!foundTeam) {
-                goto(`/org/manage/${slug}`);
-                return;
-            }
-
-            team = foundTeam;
-            updateForm.name = team.name;
-
-            // Load team members
-            await loadTeamMembers();
-            
-        } catch (err) {
-            console.error("Failed to load team:", err);
-            goto("/org");
-        } finally {
-            loading.loadTeam = false;
-        }
-    }
-
-    async function loadTeamMembers() {
-        try {
-            loading.loadMembers = true;
-            if (!page.params.teamId) return;
-            const result = await authClient.organization.listTeamMembers({
-                query: {
-                    teamId: page.params.teamId
-                }
-            });
-            
-            if (result.data) {
-                teamMembers = result.data;
-            }
-        } catch (err) {
-            console.error("Failed to load team members:", err);
-        } finally {
-            loading.loadMembers = false;
-        }
-    }
-
-    async function updateTeam(event: SubmitEvent) {
-        event.preventDefault();
-        try {
-            loading.updateTeam = true;
-            clearMessages();
-
-            const { error } = await authClient.organization.updateTeam({
-                teamId: teamId,
-                data: {
-                    name: updateForm.name
-                }
-            });
-
-            if (error) {
-                errors.update = "Failed to update team: " + error.message;
-            } else {
-                messages.update = "Team updated successfully!";
-                team.name = updateForm.name;
-            }
-        } catch (err) {
-            errors.update = "Failed to update team: " + (err as Error).message;
-        } finally {
-            loading.updateTeam = false;
-        }
-    }
-
-    async function deleteTeam() {
-        try {
-            loading.deleteTeam = true;
-            clearMessages();
-
-            if (deleteConfirmText !== "DELETE") {
-                errors.delete = "Please type 'DELETE' to confirm";
-                return;
-            }
-
-            const { error } = await authClient.organization.removeTeam({
-                teamId: teamId
-            });
-
-            if (error) {
-                errors.delete = "Failed to delete team: " + error.message;
-            } else {
-                messages.delete = "Team deleted successfully!";
-                // Redirect to organization management after successful deletion
-                setTimeout(() => goto(`/org/manage/${slug}`), 2000);
-            }
-        } catch (err) {
-            errors.delete = "Failed to delete team: " + (err as Error).message;
-        } finally {
-            loading.deleteTeam = false;
-        }
-    }
-
-    async function addTeamMember(event: SubmitEvent) {
-        event.preventDefault();
-        try {
-            loading.addMember = true;
-            clearMessages();
-
-            const { error } = await authClient.organization.addTeamMember({
-                teamId: teamId,
-                userId: addMemberForm.userId
-            } as any);
-
-            if (error) {
-                errors.members = "Failed to add member: " + error.message;
-            } else {
-                messages.members = "Member added successfully!";
-                addMemberForm.userId = "";
-                showAddMemberForm = false;
-                await loadTeamMembers();
-            }
-        } catch (err) {
-            errors.members = "Failed to add member: " + (err as Error).message;
-        } finally {
-            loading.addMember = false;
-        }
-    }
-
-    async function removeTeamMember(userId: string) {
-        try {
-            loading.removeMember = true;
-            clearMessages();
-
-            const { error } = await authClient.organization.removeTeamMember({
-                teamId: teamId,
-                userId: userId
-            });
-
-            if (error) {
-                errors.members = "Failed to remove member: " + error.message;
-            } else {
-                messages.members = "Member removed successfully!";
-                await loadTeamMembers();
-            }
-        } catch (err) {
-            errors.members = "Failed to remove member: " + (err as Error).message;
-        } finally {
-            loading.removeMember = false;
-        }
-    }
-
-    function formatDate(date: string | Date) {
-        return new Date(date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    }
-
-    onMount(() => {
-        loadTeamData();
-    });
+onMount(() => {
+  loadTeamData();
+});
 </script>
 
 <div class="container">

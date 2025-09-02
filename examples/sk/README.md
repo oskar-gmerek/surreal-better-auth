@@ -2,9 +2,8 @@
 
 This example is a reference for building integration tests for the `surreal-better-auth` adapter. It is not production code, nor best practices example.
 
-> [!CAUTION] 
+> [!CAUTION]
 > This code logs sensitive data, which is a security risk. In a real world app, you must remove or replace this logging with a secure solution.
-
 
 ## Tech Stack
 
@@ -18,10 +17,11 @@ This example is a reference for building integration tests for the `surreal-bett
 ### Prerequisites
 
 1. **SurrealDB**: Install and start SurrealDB
+
    ```bash
    # Install SurrealDB
    curl -sSf https://install.surrealdb.com | sh
-   
+
    # Start SurrealDB
    surreal start --log info --user root --pass root memory
    ```
@@ -93,6 +93,7 @@ bun run test:adapter
 ### Test Setup
 
 1. Install Playwright browsers:
+
    ```bash
    bunx playwright install
    ```

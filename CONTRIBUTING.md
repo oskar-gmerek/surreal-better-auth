@@ -5,18 +5,21 @@
 **Please read this carefully before contributing to avoid rejected PRs:**
 
 ### 🎯 Focused Pull Requests Only
+
 - **One issue = One PR**: Each pull request should address exactly one specific issue or feature
 - **No bundled changes**: Don't fix multiple unrelated things in a single PR
 - **No refactoring alongside features**: Keep refactoring separate from feature additions
 - **Stay on topic**: If you want to fix a bug, only fix that bug - nothing else
 
 ### 💬 Issue First, Code Second
+
 - **Create an issue first** for any non-trivial changes
 - **Explain your reasoning**: Why is this change needed? What problem does it solve?
 - **Wait for discussion**: Get feedback before starting work on significant changes
 - **Small fixes**: Typos and obvious bugs can skip the issue step
 
 ### 🔒 Adapter Scope Limitations
+
 This adapter has a **very specific scope** - it implements the better-auth adapter interface for SurrealDB, nothing more:
 
 - ✅ **Allowed**: SurrealDB-specific optimizations (e.g., direct record operations instead of WHERE clauses)
@@ -25,7 +28,9 @@ This adapter has a **very specific scope** - it implements the better-auth adapt
 - ❌ **Not allowed**: Features beyond the official better-auth adapter specification
 
 ### 💡 Alternative Solutions
+
 Instead of expanding the adapter, consider:
+
 - **better-auth configuration** for auth-related features
 - **better-auth hooks/plugins** for custom behavior
 - **Examples folder** to show how to achieve complex setups
@@ -34,6 +39,7 @@ Instead of expanding the adapter, consider:
 ## 🚀 Getting Started
 
 ### Fork & Clone
+
 ```bash
 # Fork the repo on GitHub, then:
 git clone https://github.com/YOUR-USERNAME/surreal-better-auth.git
@@ -104,6 +110,7 @@ packages/surreal-better-auth/
 **⚠️ Most feature requests will be rejected** - this adapter has a very narrow scope.
 
 Before requesting features:
+
 1. **Check if it belongs here**: Can this be solved with better-auth config/hooks/plugins?
 2. **Open an issue first**: Explain the use case and why it can't be solved elsewhere
 3. **Consider examples**: Would an example in the `/examples` folder be better?

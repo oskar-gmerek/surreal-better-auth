@@ -59,7 +59,7 @@ COMMIT TRANSACTION;
   const adapter = surrealdbAdapter(db, {
     idGenerator: "surreal.ULID",
     debugLogs: true,
-    allowPassingId: true
+    allowPassingId: true,
   });
 
   await runAdapterTest({

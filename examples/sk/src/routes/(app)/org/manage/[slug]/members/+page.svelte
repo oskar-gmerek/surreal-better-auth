@@ -1,138 +1,138 @@
 <script lang="ts">
-    import { page } from "$app/stores";
-    import { goto } from "$app/navigation";
-    import { authClient } from "$lib/auth-client";
-    import { Button } from "bits-ui";
-    import { onMount } from "svelte";
+import { page } from "$app/stores";
+import { goto } from "$app/navigation";
+import { authClient } from "$lib/auth-client";
+import { Button } from "bits-ui";
+import { onMount } from "svelte";
 
-    const session = authClient.useSession();
-    const orgsResult = authClient.useListOrganizations();
+const session = authClient.useSession();
+const orgsResult = authClient.useListOrganizations();
 
-    let slug = $derived($page.params.slug);
-    let organization = $state<any>(null);
-    let members = $state<any[]>([]);
-    let invitations = $state<any[]>([]);
+let slug = $derived($page.params.slug);
+let organization = $state<any>(null);
+let members = $state<any[]>([]);
+let invitations = $state<any[]>([]);
 
-    let loading = $state({
-        loadOrg: true,
-        loadMembers: false,
-        invite: false,
-    });
+let loading = $state({
+  loadOrg: true,
+  loadMembers: false,
+  invite: false,
+});
 
-    let messages = $state({
-        invite: "",
-    });
+let messages = $state({
+  invite: "",
+});
 
-    let errors = $state({
-        invite: "",
-    });
+let errors = $state({
+  invite: "",
+});
 
-    // Invite form state
-    let inviteForm = $state({
-        email: "",
-        role: "member",
-    });
+// Invite form state
+let inviteForm = $state({
+  email: "",
+  role: "member",
+});
 
-    let showInviteForm = $state(false);
+let showInviteForm = $state(false);
 
-    function clearMessages() {
-        messages.invite = "";
-        errors.invite = "";
+function clearMessages() {
+  messages.invite = "";
+  errors.invite = "";
+}
+
+async function loadOrganization() {
+  try {
+    loading.loadOrg = true;
+
+    const organizations = $orgsResult.data || [];
+    const foundOrg = organizations.find((org: any) => org.slug === slug);
+
+    if (!foundOrg) {
+      goto("/org");
+      return;
     }
 
-    async function loadOrganization() {
-        try {
-            loading.loadOrg = true;
-
-            const organizations = $orgsResult.data || [];
-            const foundOrg = organizations.find((org: any) => org.slug === slug);
-
-            if (!foundOrg) {
-                goto("/org");
-                return;
-            }
-
-            await authClient.organization.setActive({
-                organizationId: foundOrg.id,
-            });
-
-            const fullOrgResult = await authClient.organization.getFullOrganization();
-            if (fullOrgResult.data) {
-                organization = fullOrgResult.data;
-                await loadMembers();
-            }
-        } catch (err) {
-            console.error("Failed to load organization:", err);
-            goto("/org");
-        } finally {
-            loading.loadOrg = false;
-        }
-    }
-
-    async function loadMembers() {
-        try {
-            loading.loadMembers = true;
-            
-            const membersResult = await authClient.organization.listMembers();
-            
-            if (membersResult.data) {
-                members = membersResult.data.members || [];
-                invitations = membersResult.data.invitations || [];
-            }
-            
-            // Try to get invitations separately if they're not included
-            try {
-                const invitationsResult = await authClient.organization.listInvitations();
-                if (invitationsResult.data) {
-                    invitations = invitationsResult.data || [];
-                }
-            } catch (invErr) {
-                // listInvitations method might not exist, that's okay
-            }
-        } catch (err) {
-            console.error("Failed to load members:", err);
-        } finally {
-            loading.loadMembers = false;
-        }
-    }
-
-    async function inviteMember(event: SubmitEvent) {
-        event.preventDefault();
-        try {
-            loading.invite = true;
-            clearMessages();
-
-            const result = await authClient.organization.inviteMember({
-                email: inviteForm.email,
-                role: inviteForm.role,
-            });
-
-            if (result.error) {
-                errors.invite = "Failed to send invitation: " + result.error.message;
-            } else {
-                messages.invite = "Invitation sent successfully!";
-                inviteForm = { email: "", role: "member" };
-                showInviteForm = false;
-                await loadMembers(); // Reload to show new invitation
-            }
-        } catch (err) {
-            errors.invite = "Failed to send invitation: " + (err as Error).message;
-        } finally {
-            loading.invite = false;
-        }
-    }
-
-    function formatDate(date: string | Date) {
-        return new Date(date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        });
-    }
-
-    onMount(() => {
-        loadOrganization();
+    await authClient.organization.setActive({
+      organizationId: foundOrg.id,
     });
+
+    const fullOrgResult = await authClient.organization.getFullOrganization();
+    if (fullOrgResult.data) {
+      organization = fullOrgResult.data;
+      await loadMembers();
+    }
+  } catch (err) {
+    console.error("Failed to load organization:", err);
+    goto("/org");
+  } finally {
+    loading.loadOrg = false;
+  }
+}
+
+async function loadMembers() {
+  try {
+    loading.loadMembers = true;
+
+    const membersResult = await authClient.organization.listMembers();
+
+    if (membersResult.data) {
+      members = membersResult.data.members || [];
+      invitations = membersResult.data.invitations || [];
+    }
+
+    // Try to get invitations separately if they're not included
+    try {
+      const invitationsResult = await authClient.organization.listInvitations();
+      if (invitationsResult.data) {
+        invitations = invitationsResult.data || [];
+      }
+    } catch (invErr) {
+      // listInvitations method might not exist, that's okay
+    }
+  } catch (err) {
+    console.error("Failed to load members:", err);
+  } finally {
+    loading.loadMembers = false;
+  }
+}
+
+async function inviteMember(event: SubmitEvent) {
+  event.preventDefault();
+  try {
+    loading.invite = true;
+    clearMessages();
+
+    const result = await authClient.organization.inviteMember({
+      email: inviteForm.email,
+      role: inviteForm.role,
+    });
+
+    if (result.error) {
+      errors.invite = "Failed to send invitation: " + result.error.message;
+    } else {
+      messages.invite = "Invitation sent successfully!";
+      inviteForm = { email: "", role: "member" };
+      showInviteForm = false;
+      await loadMembers(); // Reload to show new invitation
+    }
+  } catch (err) {
+    errors.invite = "Failed to send invitation: " + (err as Error).message;
+  } finally {
+    loading.invite = false;
+  }
+}
+
+function formatDate(date: string | Date) {
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+onMount(() => {
+  loadOrganization();
+});
 </script>
 
 <div class="container">

@@ -1,442 +1,440 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { authClient } from "$lib/auth-client";
-  import { Button } from "bits-ui";
+import { goto } from "$app/navigation";
+import { authClient } from "$lib/auth-client";
+import { Button } from "bits-ui";
 
-  const organizations = authClient.useListOrganizations();
-  const session = authClient.useSession();
-  const activeOrganization = authClient.useActiveOrganization();
+const organizations = authClient.useListOrganizations();
+const session = authClient.useSession();
+const activeOrganization = authClient.useActiveOrganization();
 
-  // Redirect if not authenticated
-  $effect(() => {
-    if (!$session.isPending && !$session.isRefetching && !$session.data) {
-      goto("/auth/sign/in");
-    }
-  });
-
-  // Form states
-  let createOrgForm = $state({
-    name: "",
-    slug: "",
-    logo: "",
-    myCustomField: "",
-  });
-
-  let inviteForm = $state({
-    email: "",
-    role: "member" as "admin" | "member" | "owner",
-  });
-
-  // UI states
-  let loading = $state({
-    createOrg: false,
-    setActive: false,
-    invite: false,
-    loadMembers: false,
-    loadInvitations: false,
-    loadTeams: false,
-    loadUserInvitations: false,
-    createTeam: false,
-    acceptInvitation: false,
-    rejectInvitation: false,
-  });
-
-  let messages = $state({
-    createOrg: "",
-    invite: "",
-    general: "",
-    createTeam: "",
-    userInvitations: "",
-  });
-
-  let errors = $state({
-    createOrg: "",
-    invite: "",
-    general: "",
-    createTeam: "",
-    userInvitations: "",
-  });
-
-  // Data states
-  let members = $state<any[]>([]);
-  let invitations = $state<any[]>([]);
-  let teams = $state<any[]>([]);
-  let userInvitations = $state<any[]>([]);
-  let showCreateForm = $state(false);
-  let showInviteForm = $state(false);
-  let showCreateTeamForm = $state(false);
-  let activeTab = $state<"overview" | "members" | "invitations" | "teams">(
-    "overview",
-  );
-
-  // Team creation form
-  let createTeamForm = $state({
-    name: "",
-  });
-
-  function clearMessages() {
-    messages.createOrg = "";
-    messages.invite = "";
-    messages.general = "";
-    errors.createOrg = "";
-    errors.invite = "";
-    errors.general = "";
+// Redirect if not authenticated
+$effect(() => {
+  if (!$session.isPending && !$session.isRefetching && !$session.data) {
+    goto("/auth/sign/in");
   }
+});
 
-  function normalizeSlug(slug: string) {
-    return slug
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
-  }
+// Form states
+let createOrgForm = $state({
+  name: "",
+  slug: "",
+  logo: "",
+  myCustomField: "",
+});
 
-  async function createOrganization(event: SubmitEvent) {
-    event.preventDefault();
-    try {
-      loading.createOrg = true;
-      clearMessages();
+let inviteForm = $state({
+  email: "",
+  role: "member" as "admin" | "member" | "owner",
+});
 
-      const normalizedSlug = normalizeSlug(createOrgForm.slug);
+// UI states
+let loading = $state({
+  createOrg: false,
+  setActive: false,
+  invite: false,
+  loadMembers: false,
+  loadInvitations: false,
+  loadTeams: false,
+  loadUserInvitations: false,
+  createTeam: false,
+  acceptInvitation: false,
+  rejectInvitation: false,
+});
 
-      // Check if slug is available
-      const slugCheck = await authClient.organization.checkSlug({
-        slug: normalizedSlug,
-      });
+let messages = $state({
+  createOrg: "",
+  invite: "",
+  general: "",
+  createTeam: "",
+  userInvitations: "",
+});
 
-      if (!slugCheck.data?.status) {
-        errors.createOrg = "Organization slug is not available";
-        return;
-      }
+let errors = $state({
+  createOrg: "",
+  invite: "",
+  general: "",
+  createTeam: "",
+  userInvitations: "",
+});
 
-      const { error } = await authClient.organization.create({
-        name: createOrgForm.name,
-        slug: normalizedSlug,
-        logo: createOrgForm.logo || undefined,
-        myCustomField: createOrgForm.myCustomField || undefined,
-        keepCurrentActiveOrganization: false,
-      } as any);
+// Data states
+let members = $state<any[]>([]);
+let invitations = $state<any[]>([]);
+let teams = $state<any[]>([]);
+let userInvitations = $state<any[]>([]);
+let showCreateForm = $state(false);
+let showInviteForm = $state(false);
+let showCreateTeamForm = $state(false);
+let activeTab = $state<"overview" | "members" | "invitations" | "teams">(
+  "overview",
+);
 
-      if (error) {
-        errors.createOrg = "Failed to create organization: " + error.message;
-      } else {
-        messages.createOrg = "Organization created successfully!";
-        createOrgForm = { name: "", slug: "", logo: "", myCustomField: "" };
-        showCreateForm = false;
-        // Refresh organizations list
-        $organizations.refetch();
-      }
-    } catch (err) {
-      errors.createOrg =
-        "Failed to create organization: " + (err as Error).message;
-    } finally {
-      loading.createOrg = false;
-    }
-  }
+// Team creation form
+let createTeamForm = $state({
+  name: "",
+});
 
-  async function setActiveOrg(orgId: string) {
-    try {
-      loading.setActive = true;
-      clearMessages();
+function clearMessages() {
+  messages.createOrg = "";
+  messages.invite = "";
+  messages.general = "";
+  errors.createOrg = "";
+  errors.invite = "";
+  errors.general = "";
+}
 
-      const { error } = await authClient.organization.setActive({
-        organizationId: orgId,
-      });
+function normalizeSlug(slug: string) {
+  return slug
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
-      if (error) {
-        errors.general = "Failed to set active organization: " + error.message;
-      } else {
-        messages.general = "Active organization updated!";
-        // Reset data for the new organization
-        members = [];
-        invitations = [];
-        teams = [];
-        // Switch to overview tab
-        activeTab = "overview";
-      }
-    } catch (err) {
-      errors.general =
-        "Failed to set active organization: " + (err as Error).message;
-    } finally {
-      loading.setActive = false;
-    }
-  }
+async function createOrganization(event: SubmitEvent) {
+  event.preventDefault();
+  try {
+    loading.createOrg = true;
+    clearMessages();
 
-  async function inviteMember(event: SubmitEvent) {
-    event.preventDefault();
-    try {
-      loading.invite = true;
-      clearMessages();
+    const normalizedSlug = normalizeSlug(createOrgForm.slug);
 
-      const inviteResult = await authClient.organization.inviteMember({
-        email: inviteForm.email,
-        role: inviteForm.role,
-      });
-
-      if (inviteResult.error) {
-        errors.invite =
-          "Failed to send invitation: " + inviteResult.error.message;
-      } else {
-        const invitationId = inviteResult.data?.id || "unknown";
-        messages.invite = `Invitation sent successfully! Invitation ID: ${invitationId}`;
-        inviteForm = { email: "", role: "member" };
-        showInviteForm = false;
-        await loadInvitations();
-      }
-    } catch (err) {
-      errors.invite = "Failed to send invitation: " + (err as Error).message;
-    } finally {
-      loading.invite = false;
-    }
-  }
-
-  async function loadMembers() {
-    if (!$activeOrganization.data) return;
-
-    try {
-      loading.loadMembers = true;
-      const result = await authClient.organization.listMembers();
-
-      if (result.data) {
-        members = result.data.members || [];
-      }
-    } catch (err) {
-      console.error("Failed to load members:", err);
-    } finally {
-      loading.loadMembers = false;
-    }
-  }
-
-  async function loadInvitations() {
-    if (!$activeOrganization.data) return;
-
-    try {
-      loading.loadInvitations = true;
-      const result = await authClient.organization.listInvitations();
-
-      if (result.data) {
-        invitations = result.data;
-      }
-    } catch (err) {
-      console.error("Failed to load invitations:", err);
-    } finally {
-      loading.loadInvitations = false;
-    }
-  }
-
-  async function loadTeams() {
-    if (!$activeOrganization.data) return;
-
-    try {
-      loading.loadTeams = true;
-      const result = await authClient.organization.listTeams();
-
-      if (result.data) {
-        teams = result.data;
-      }
-    } catch (err) {
-      console.error("Failed to load teams:", err);
-    } finally {
-      loading.loadTeams = false;
-    }
-  }
-
-  async function loadOrganizationData() {
-    if (!$activeOrganization.data) return;
-
-    switch (activeTab) {
-      case "members":
-        if (members.length === 0) await loadMembers();
-        break;
-      case "invitations":
-        if (invitations.length === 0) await loadInvitations();
-        break;
-      case "teams":
-        if (teams.length === 0) await loadTeams();
-        break;
-    }
-  }
-
-  async function removeMember(memberEmail: string) {
-    try {
-      const { error } = await authClient.organization.removeMember({
-        memberIdOrEmail: memberEmail,
-      });
-
-      if (error) {
-        errors.general = "Failed to remove member: " + error.message;
-      } else {
-        messages.general = "Member removed successfully!";
-        await loadMembers();
-      }
-    } catch (err) {
-      errors.general = "Failed to remove member: " + (err as Error).message;
-    }
-  }
-
-  async function cancelInvitation(invitationId: string) {
-    try {
-      const { error } = await authClient.organization.cancelInvitation({
-        invitationId,
-      });
-
-      if (error) {
-        errors.general = "Failed to cancel invitation: " + error.message;
-      } else {
-        messages.general = "Invitation cancelled successfully!";
-        await loadInvitations();
-      }
-    } catch (err) {
-      errors.general = "Failed to cancel invitation: " + (err as Error).message;
-    }
-  }
-
-  async function loadUserInvitations() {
-    try {
-      loading.loadUserInvitations = true;
-      const result = await authClient.organization.listUserInvitations();
-
-      if (result.data) {
-        userInvitations = result.data;
-      }
-    } catch (err) {
-      console.error("Failed to load user invitations:", err);
-    } finally {
-      loading.loadUserInvitations = false;
-    }
-  }
-
-  async function acceptInvitation(invitationId: string) {
-    try {
-      loading.acceptInvitation = true;
-      const { error } = await authClient.organization.acceptInvitation({
-        invitationId,
-      });
-
-      if (error) {
-        errors.userInvitations =
-          "Failed to accept invitation: " + error.message;
-      } else {
-        messages.userInvitations = "Invitation accepted successfully!";
-        await loadUserInvitations();
-        await $organizations.refetch();
-      }
-    } catch (err) {
-      errors.userInvitations =
-        "Failed to accept invitation: " + (err as Error).message;
-    } finally {
-      loading.acceptInvitation = false;
-    }
-  }
-
-  async function rejectInvitation(invitationId: string) {
-    try {
-      loading.rejectInvitation = true;
-      const { error } = await authClient.organization.rejectInvitation({
-        invitationId,
-      });
-
-      if (error) {
-        errors.userInvitations =
-          "Failed to reject invitation: " + error.message;
-      } else {
-        messages.userInvitations = "Invitation rejected successfully!";
-        await loadUserInvitations();
-      }
-    } catch (err) {
-      errors.userInvitations =
-        "Failed to reject invitation: " + (err as Error).message;
-    } finally {
-      loading.rejectInvitation = false;
-    }
-  }
-
-  async function createTeam(event: SubmitEvent) {
-    event.preventDefault();
-    try {
-      loading.createTeam = true;
-      clearMessages();
-
-      const { error } = await authClient.organization.createTeam({
-        name: createTeamForm.name,
-      });
-
-      if (error) {
-        errors.createTeam = "Failed to create team: " + error.message;
-      } else {
-        messages.createTeam = "Team created successfully!";
-        createTeamForm = { name: "" };
-        showCreateTeamForm = false;
-        await loadTeams();
-      }
-    } catch (err) {
-      errors.createTeam = "Failed to create team: " + (err as Error).message;
-    } finally {
-      loading.createTeam = false;
-    }
-  }
-
-  function formatDate(date: string | Date) {
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+    // Check if slug is available
+    const slugCheck = await authClient.organization.checkSlug({
+      slug: normalizedSlug,
     });
-  }
 
-  function getRoleColor(role: string) {
-    switch (role) {
-      case "owner":
-        return "bg-purple-600";
-      case "admin":
-        return "bg-blue-600";
-      case "member":
-        return "bg-green-600";
-      default:
-        return "bg-gray-600";
+    if (!slugCheck.data?.status) {
+      errors.createOrg = "Organization slug is not available";
+      return;
     }
-  }
 
-  function getStatusColor(status: string) {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-600";
-      case "accepted":
-        return "bg-green-600";
-      case "rejected":
-        return "bg-red-600";
-      default:
-        return "bg-gray-600";
+    const { error } = await authClient.organization.create({
+      name: createOrgForm.name,
+      slug: normalizedSlug,
+      logo: createOrgForm.logo || undefined,
+      myCustomField: createOrgForm.myCustomField || undefined,
+      keepCurrentActiveOrganization: false,
+    } as any);
+
+    if (error) {
+      errors.createOrg = "Failed to create organization: " + error.message;
+    } else {
+      messages.createOrg = "Organization created successfully!";
+      createOrgForm = { name: "", slug: "", logo: "", myCustomField: "" };
+      showCreateForm = false;
+      // Refresh organizations list
+      $organizations.refetch();
     }
+  } catch (err) {
+    errors.createOrg =
+      "Failed to create organization: " + (err as Error).message;
+  } finally {
+    loading.createOrg = false;
   }
+}
 
-  // Load data when active organization changes or tab changes
-  let lastActiveOrgId = $state<string | null>(null);
-  let lastActiveTab = $state<string>("");
+async function setActiveOrg(orgId: string) {
+  try {
+    loading.setActive = true;
+    clearMessages();
 
-  $effect(() => {
-    const currentOrgId = $activeOrganization.data?.id || null;
+    const { error } = await authClient.organization.setActive({
+      organizationId: orgId,
+    });
 
-    // Only load data if organization or tab actually changed
-    if (
-      currentOrgId &&
-      activeTab !== "overview" &&
-      (currentOrgId !== lastActiveOrgId || activeTab !== lastActiveTab)
-    ) {
-      lastActiveOrgId = currentOrgId;
-      lastActiveTab = activeTab;
-      loadOrganizationData();
+    if (error) {
+      errors.general = "Failed to set active organization: " + error.message;
+    } else {
+      messages.general = "Active organization updated!";
+      // Reset data for the new organization
+      members = [];
+      invitations = [];
+      teams = [];
+      // Switch to overview tab
+      activeTab = "overview";
     }
+  } catch (err) {
+    errors.general =
+      "Failed to set active organization: " + (err as Error).message;
+  } finally {
+    loading.setActive = false;
+  }
+}
+
+async function inviteMember(event: SubmitEvent) {
+  event.preventDefault();
+  try {
+    loading.invite = true;
+    clearMessages();
+
+    const inviteResult = await authClient.organization.inviteMember({
+      email: inviteForm.email,
+      role: inviteForm.role,
+    });
+
+    if (inviteResult.error) {
+      errors.invite =
+        "Failed to send invitation: " + inviteResult.error.message;
+    } else {
+      const invitationId = inviteResult.data?.id || "unknown";
+      messages.invite = `Invitation sent successfully! Invitation ID: ${invitationId}`;
+      inviteForm = { email: "", role: "member" };
+      showInviteForm = false;
+      await loadInvitations();
+    }
+  } catch (err) {
+    errors.invite = "Failed to send invitation: " + (err as Error).message;
+  } finally {
+    loading.invite = false;
+  }
+}
+
+async function loadMembers() {
+  if (!$activeOrganization.data) return;
+
+  try {
+    loading.loadMembers = true;
+    const result = await authClient.organization.listMembers();
+
+    if (result.data) {
+      members = result.data.members || [];
+    }
+  } catch (err) {
+    console.error("Failed to load members:", err);
+  } finally {
+    loading.loadMembers = false;
+  }
+}
+
+async function loadInvitations() {
+  if (!$activeOrganization.data) return;
+
+  try {
+    loading.loadInvitations = true;
+    const result = await authClient.organization.listInvitations();
+
+    if (result.data) {
+      invitations = result.data;
+    }
+  } catch (err) {
+    console.error("Failed to load invitations:", err);
+  } finally {
+    loading.loadInvitations = false;
+  }
+}
+
+async function loadTeams() {
+  if (!$activeOrganization.data) return;
+
+  try {
+    loading.loadTeams = true;
+    const result = await authClient.organization.listTeams();
+
+    if (result.data) {
+      teams = result.data;
+    }
+  } catch (err) {
+    console.error("Failed to load teams:", err);
+  } finally {
+    loading.loadTeams = false;
+  }
+}
+
+async function loadOrganizationData() {
+  if (!$activeOrganization.data) return;
+
+  switch (activeTab) {
+    case "members":
+      if (members.length === 0) await loadMembers();
+      break;
+    case "invitations":
+      if (invitations.length === 0) await loadInvitations();
+      break;
+    case "teams":
+      if (teams.length === 0) await loadTeams();
+      break;
+  }
+}
+
+async function removeMember(memberEmail: string) {
+  try {
+    const { error } = await authClient.organization.removeMember({
+      memberIdOrEmail: memberEmail,
+    });
+
+    if (error) {
+      errors.general = "Failed to remove member: " + error.message;
+    } else {
+      messages.general = "Member removed successfully!";
+      await loadMembers();
+    }
+  } catch (err) {
+    errors.general = "Failed to remove member: " + (err as Error).message;
+  }
+}
+
+async function cancelInvitation(invitationId: string) {
+  try {
+    const { error } = await authClient.organization.cancelInvitation({
+      invitationId,
+    });
+
+    if (error) {
+      errors.general = "Failed to cancel invitation: " + error.message;
+    } else {
+      messages.general = "Invitation cancelled successfully!";
+      await loadInvitations();
+    }
+  } catch (err) {
+    errors.general = "Failed to cancel invitation: " + (err as Error).message;
+  }
+}
+
+async function loadUserInvitations() {
+  try {
+    loading.loadUserInvitations = true;
+    const result = await authClient.organization.listUserInvitations();
+
+    if (result.data) {
+      userInvitations = result.data;
+    }
+  } catch (err) {
+    console.error("Failed to load user invitations:", err);
+  } finally {
+    loading.loadUserInvitations = false;
+  }
+}
+
+async function acceptInvitation(invitationId: string) {
+  try {
+    loading.acceptInvitation = true;
+    const { error } = await authClient.organization.acceptInvitation({
+      invitationId,
+    });
+
+    if (error) {
+      errors.userInvitations = "Failed to accept invitation: " + error.message;
+    } else {
+      messages.userInvitations = "Invitation accepted successfully!";
+      await loadUserInvitations();
+      await $organizations.refetch();
+    }
+  } catch (err) {
+    errors.userInvitations =
+      "Failed to accept invitation: " + (err as Error).message;
+  } finally {
+    loading.acceptInvitation = false;
+  }
+}
+
+async function rejectInvitation(invitationId: string) {
+  try {
+    loading.rejectInvitation = true;
+    const { error } = await authClient.organization.rejectInvitation({
+      invitationId,
+    });
+
+    if (error) {
+      errors.userInvitations = "Failed to reject invitation: " + error.message;
+    } else {
+      messages.userInvitations = "Invitation rejected successfully!";
+      await loadUserInvitations();
+    }
+  } catch (err) {
+    errors.userInvitations =
+      "Failed to reject invitation: " + (err as Error).message;
+  } finally {
+    loading.rejectInvitation = false;
+  }
+}
+
+async function createTeam(event: SubmitEvent) {
+  event.preventDefault();
+  try {
+    loading.createTeam = true;
+    clearMessages();
+
+    const { error } = await authClient.organization.createTeam({
+      name: createTeamForm.name,
+    });
+
+    if (error) {
+      errors.createTeam = "Failed to create team: " + error.message;
+    } else {
+      messages.createTeam = "Team created successfully!";
+      createTeamForm = { name: "" };
+      showCreateTeamForm = false;
+      await loadTeams();
+    }
+  } catch (err) {
+    errors.createTeam = "Failed to create team: " + (err as Error).message;
+  } finally {
+    loading.createTeam = false;
+  }
+}
+
+function formatDate(date: string | Date) {
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
+}
 
-  // Load user invitations on mount
-  $effect(() => {
-    if ($session.data) {
-      loadUserInvitations();
-    }
-  });
+function getRoleColor(role: string) {
+  switch (role) {
+    case "owner":
+      return "bg-purple-600";
+    case "admin":
+      return "bg-blue-600";
+    case "member":
+      return "bg-green-600";
+    default:
+      return "bg-gray-600";
+  }
+}
+
+function getStatusColor(status: string) {
+  switch (status) {
+    case "pending":
+      return "bg-yellow-600";
+    case "accepted":
+      return "bg-green-600";
+    case "rejected":
+      return "bg-red-600";
+    default:
+      return "bg-gray-600";
+  }
+}
+
+// Load data when active organization changes or tab changes
+let lastActiveOrgId = $state<string | null>(null);
+let lastActiveTab = $state<string>("");
+
+$effect(() => {
+  const currentOrgId = $activeOrganization.data?.id || null;
+
+  // Only load data if organization or tab actually changed
+  if (
+    currentOrgId &&
+    activeTab !== "overview" &&
+    (currentOrgId !== lastActiveOrgId || activeTab !== lastActiveTab)
+  ) {
+    lastActiveOrgId = currentOrgId;
+    lastActiveTab = activeTab;
+    loadOrganizationData();
+  }
+});
+
+// Load user invitations on mount
+$effect(() => {
+  if ($session.data) {
+    loadUserInvitations();
+  }
+});
 </script>
 
 <div class="container">

@@ -1,96 +1,96 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
-    import { authClient } from "$lib/auth-client";
-    import { Button } from "bits-ui";
-    import { onMount } from "svelte";
+import { goto } from "$app/navigation";
+import { authClient } from "$lib/auth-client";
+import { Button } from "bits-ui";
+import { onMount } from "svelte";
 
-    const session = authClient.useSession();
-    let sessions: any[] = $state([]);
-    let loading = $state(true);
-    let error = $state("");
+const session = authClient.useSession();
+let sessions: any[] = $state([]);
+let loading = $state(true);
+let error = $state("");
 
-    // Redirect if not authenticated
-    $effect(() => {
-        if (!$session.isPending && !$session.isRefetching && !$session.data) {
-            goto("/auth/sign/in");
-        }
-    });
+// Redirect if not authenticated
+$effect(() => {
+  if (!$session.isPending && !$session.isRefetching && !$session.data) {
+    goto("/auth/sign/in");
+  }
+});
 
-    async function loadSessions() {
-        try {
-            loading = true;
-            error = "";
-            const result = await authClient.listSessions();
-            if (result.data) {
-                sessions = result.data;
-            } else {
-                error = "Failed to load sessions";
-            }
-        } catch (err) {
-            error = "Error loading sessions: " + (err as Error).message;
-        } finally {
-            loading = false;
-        }
+async function loadSessions() {
+  try {
+    loading = true;
+    error = "";
+    const result = await authClient.listSessions();
+    if (result.data) {
+      sessions = result.data;
+    } else {
+      error = "Failed to load sessions";
     }
+  } catch (err) {
+    error = "Error loading sessions: " + (err as Error).message;
+  } finally {
+    loading = false;
+  }
+}
 
-    async function revokeSession(token: string) {
-        try {
-            await authClient.revokeSession({token});
-            await loadSessions(); // Reload sessions
-        } catch (err) {
-            error = "Failed to revoke session: " + (err as Error).message;
-        }
-    }
+async function revokeSession(token: string) {
+  try {
+    await authClient.revokeSession({ token });
+    await loadSessions(); // Reload sessions
+  } catch (err) {
+    error = "Failed to revoke session: " + (err as Error).message;
+  }
+}
 
-    async function revokeAllOtherSessions() {
-        try {
-            await authClient.revokeOtherSessions();
-            await loadSessions(); // Reload sessions
-        } catch (err) {
-            error = "Failed to revoke other sessions: " + (err as Error).message;
-        }
-    }
+async function revokeAllOtherSessions() {
+  try {
+    await authClient.revokeOtherSessions();
+    await loadSessions(); // Reload sessions
+  } catch (err) {
+    error = "Failed to revoke other sessions: " + (err as Error).message;
+  }
+}
 
-    function formatDate(date: string | Date) {
-        return new Date(date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    }
+function formatDate(date: string | Date) {
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
-    function isCurrentSession(sessionId: string) {
-        return $session.data?.session.id === sessionId;
-    }
+function isCurrentSession(sessionId: string) {
+  return $session.data?.session.id === sessionId;
+}
 
-    function getDeviceInfo(userAgent: string | null) {
-        if (!userAgent) return "Unknown Device";
-        
-        // Simple device detection
-        if (userAgent.includes("Mobile") || userAgent.includes("Android")) {
-            return "📱 Mobile Device";
-        } else if (userAgent.includes("iPad") || userAgent.includes("Tablet")) {
-            return "📱 Tablet";
-        } else {
-            return "💻 Desktop";
-        }
-    }
+function getDeviceInfo(userAgent: string | null) {
+  if (!userAgent) return "Unknown Device";
 
-    function getBrowserInfo(userAgent: string | null) {
-        if (!userAgent) return "Unknown Browser";
-        
-        if (userAgent.includes("Chrome")) return "Chrome";
-        if (userAgent.includes("Firefox")) return "Firefox";
-        if (userAgent.includes("Safari")) return "Safari";
-        if (userAgent.includes("Edge")) return "Edge";
-        return "Other Browser";
-    }
+  // Simple device detection
+  if (userAgent.includes("Mobile") || userAgent.includes("Android")) {
+    return "📱 Mobile Device";
+  } else if (userAgent.includes("iPad") || userAgent.includes("Tablet")) {
+    return "📱 Tablet";
+  } else {
+    return "💻 Desktop";
+  }
+}
 
-    onMount(() => {
-        loadSessions();
-    });
+function getBrowserInfo(userAgent: string | null) {
+  if (!userAgent) return "Unknown Browser";
+
+  if (userAgent.includes("Chrome")) return "Chrome";
+  if (userAgent.includes("Firefox")) return "Firefox";
+  if (userAgent.includes("Safari")) return "Safari";
+  if (userAgent.includes("Edge")) return "Edge";
+  return "Other Browser";
+}
+
+onMount(() => {
+  loadSessions();
+});
 </script>
 
 <div class="container">

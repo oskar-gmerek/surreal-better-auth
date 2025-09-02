@@ -2,15 +2,15 @@ name: CI
 
 on:
   push:
-    branches: [ main, beta ]
+    branches: [main, beta]
   pull_request:
-    branches: [ main, beta ]
+    branches: [main, beta]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false 
+      fail-fast: false
       matrix:
         runtime:
           - name: "Node.js 20"
@@ -25,7 +25,7 @@ jobs:
           - name: "Bun latest"
             type: "bun"
             version: "latest"
-            
+
     name: Test on ${{ matrix.runtime.name }}
 
     steps:
@@ -55,7 +55,14 @@ jobs:
 
       - name: Install dependencies
         run: bun install
-      
+
+      - name: Check formatting
+        run: bunx prettier --check "packages/**/*.{ts,js,json,md}"
+
+      - name: Check TypeScript
+        working-directory: ./packages/surreal-better-auth
+        run: bunx tsc --noEmit
+
       - name: Build package
         run: bun run build
 
@@ -75,7 +82,7 @@ jobs:
       - name: Run adapter tests (Bun)
         if: matrix.runtime.type == 'bun'
         run: bun run test:adapter
-        
+
       - name: Install example dependencies
         if: matrix.runtime.type == 'bun'
         working-directory: examples/sk
@@ -112,7 +119,6 @@ jobs:
         if: always()
         run: echo "Cleaning up... SurrealDB service will stop automatically."
 
-
   build:
     needs: test
     runs-on: ubuntu-latest
@@ -132,10 +138,10 @@ jobs:
 
       - name: Build package
         run: bun run build
-      
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: built-package
-          path: packages/surreal-better-auth/dist 
+          path: packages/surreal-better-auth/dist
           retention-days: 7

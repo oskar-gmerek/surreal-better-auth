@@ -1,136 +1,140 @@
 <script lang="ts">
-    import { page } from "$app/stores";
-    import { goto } from "$app/navigation";
-    import { authClient } from "$lib/auth-client";
-    import { Button } from "bits-ui";
-    import { onMount } from "svelte";
+import { page } from "$app/stores";
+import { goto } from "$app/navigation";
+import { authClient } from "$lib/auth-client";
+import { Button } from "bits-ui";
+import { onMount } from "svelte";
 
-    const session = authClient.useSession();
-    const orgsResult = authClient.useListOrganizations();
+const session = authClient.useSession();
+const orgsResult = authClient.useListOrganizations();
 
-    // Redirect if not authenticated
-    $effect(() => {
-        if (!$session.isPending && !$session.isRefetching && !$session.data) {
-            goto("/auth/sign/in");
-        }
-    });
+// Redirect if not authenticated
+$effect(() => {
+  if (!$session.isPending && !$session.isRefetching && !$session.data) {
+    goto("/auth/sign/in");
+  }
+});
 
-    let slug = $derived($page.params.slug);
-    let organization = $state<any>(null);
-    let teams = $state<any[]>([]);
+let slug = $derived($page.params.slug);
+let organization = $state<any>(null);
+let teams = $state<any[]>([]);
 
-    let loading = $state({
-        loadOrg: true,
-        loadTeams: false,
-        deleteTeam: false,
-    });
+let loading = $state({
+  loadOrg: true,
+  loadTeams: false,
+  deleteTeam: false,
+});
 
-    let messages = $state({
-        delete: "",
-    });
+let messages = $state({
+  delete: "",
+});
 
-    let errors = $state({
-        delete: "",
-    });
+let errors = $state({
+  delete: "",
+});
 
-    function clearMessages() {
-        messages.delete = "";
-        errors.delete = "";
+function clearMessages() {
+  messages.delete = "";
+  errors.delete = "";
+}
+
+async function loadOrganization() {
+  try {
+    loading.loadOrg = true;
+
+    const organizations = $orgsResult.data || [];
+    const foundOrg = organizations.find((org: any) => org.slug === slug);
+
+    if (!foundOrg) {
+      goto("/org");
+      return;
     }
 
-    async function loadOrganization() {
-        try {
-            loading.loadOrg = true;
-
-            const organizations = $orgsResult.data || [];
-            const foundOrg = organizations.find((org: any) => org.slug === slug);
-
-            if (!foundOrg) {
-                goto("/org");
-                return;
-            }
-
-            await authClient.organization.setActive({
-                organizationId: foundOrg.id,
-            });
-
-            const fullOrgResult = await authClient.organization.getFullOrganization();
-            if (fullOrgResult.data) {
-                organization = fullOrgResult.data;
-                await loadTeams();
-            }
-        } catch (err) {
-            console.error("Failed to load organization:", err);
-            goto("/org");
-        } finally {
-            loading.loadOrg = false;
-        }
-    }
-
-    async function loadTeams() {
-        try {
-            loading.loadTeams = true;
-            
-            // Try to get teams from the organization data
-            if (organization.teams) {
-                teams = organization.teams;
-            } else {
-                // If teams are not included, try to fetch them separately
-                try {
-                    const teamsResult = await authClient.organization.listTeams();
-                    if (teamsResult.data) {
-                        teams = teamsResult.data || [];
-                    }
-                } catch (teamsErr) {
-                    console.warn("Failed to load teams separately:", teamsErr);
-                    teams = [];
-                }
-            }
-        } catch (err) {
-            console.error("Failed to load teams:", err);
-            teams = [];
-        } finally {
-            loading.loadTeams = false;
-        }
-    }
-
-    async function deleteTeam(teamId: string, teamName: string) {
-        if (!confirm(`Are you sure you want to delete the team "${teamName}"? This action cannot be undone.`)) {
-            return;
-        }
-
-        try {
-            loading.deleteTeam = true;
-            clearMessages();
-
-            const result = await authClient.organization.removeTeam({
-                teamId,
-            });
-
-            if (result.error) {
-                errors.delete = "Failed to delete team: " + result.error.message;
-            } else {
-                messages.delete = `Team "${teamName}" deleted successfully!`;
-                await loadTeams(); // Reload teams list
-            }
-        } catch (err) {
-            errors.delete = "Failed to delete team: " + (err as Error).message;
-        } finally {
-            loading.deleteTeam = false;
-        }
-    }
-
-    function formatDate(date: string | Date) {
-        return new Date(date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        });
-    }
-
-    onMount(() => {
-        loadOrganization();
+    await authClient.organization.setActive({
+      organizationId: foundOrg.id,
     });
+
+    const fullOrgResult = await authClient.organization.getFullOrganization();
+    if (fullOrgResult.data) {
+      organization = fullOrgResult.data;
+      await loadTeams();
+    }
+  } catch (err) {
+    console.error("Failed to load organization:", err);
+    goto("/org");
+  } finally {
+    loading.loadOrg = false;
+  }
+}
+
+async function loadTeams() {
+  try {
+    loading.loadTeams = true;
+
+    // Try to get teams from the organization data
+    if (organization.teams) {
+      teams = organization.teams;
+    } else {
+      // If teams are not included, try to fetch them separately
+      try {
+        const teamsResult = await authClient.organization.listTeams();
+        if (teamsResult.data) {
+          teams = teamsResult.data || [];
+        }
+      } catch (teamsErr) {
+        console.warn("Failed to load teams separately:", teamsErr);
+        teams = [];
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load teams:", err);
+    teams = [];
+  } finally {
+    loading.loadTeams = false;
+  }
+}
+
+async function deleteTeam(teamId: string, teamName: string) {
+  if (
+    !confirm(
+      `Are you sure you want to delete the team "${teamName}"? This action cannot be undone.`,
+    )
+  ) {
+    return;
+  }
+
+  try {
+    loading.deleteTeam = true;
+    clearMessages();
+
+    const result = await authClient.organization.removeTeam({
+      teamId,
+    });
+
+    if (result.error) {
+      errors.delete = "Failed to delete team: " + result.error.message;
+    } else {
+      messages.delete = `Team "${teamName}" deleted successfully!`;
+      await loadTeams(); // Reload teams list
+    }
+  } catch (err) {
+    errors.delete = "Failed to delete team: " + (err as Error).message;
+  } finally {
+    loading.deleteTeam = false;
+  }
+}
+
+function formatDate(date: string | Date) {
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+onMount(() => {
+  loadOrganization();
+});
 </script>
 
 <div class="container">

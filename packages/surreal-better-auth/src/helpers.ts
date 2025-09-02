@@ -6,18 +6,18 @@
 import { decodeCbor, PreparedQuery, RecordId, type Fill, Gap } from "surrealdb";
 import type { Where } from "better-auth/types";
 import { logger } from "better-auth";
-import type { 
-  AdapterMethod, 
-  RecordIdMap, 
-  SurrealDBAdapterConfig, 
+import type {
+  AdapterMethod,
+  RecordIdMap,
+  SurrealDBAdapterConfig,
   QuerySuffixOptions,
   // FieldMappingRule
 } from "./types";
-import { 
+import {
   COMPARISON_OPERATORS,
   STRING_OPERATORS,
   DEFAULT_FIELD_REFERENCES,
-  FIELD_MAPPING_RULES
+  FIELD_MAPPING_RULES,
 } from "./types";
 
 /**
@@ -109,21 +109,27 @@ export function buildRecordIdMap(
   return map;
 }
 
-
 /**
  * Logs SurrealDB queries with formatted output when debug logging is enabled.
  */
-export function logQuery(config: SurrealDBAdapterConfig | undefined, debugLog: (...args: any[]) => void, method: AdapterMethod, query: PreparedQuery, fills: Fill<any>[]): void {
+export function logQuery(
+  config: SurrealDBAdapterConfig | undefined,
+  debugLog: (...args: any[]) => void,
+  method: AdapterMethod,
+  query: PreparedQuery,
+  fills: Fill<any>[],
+): void {
   if (!config?.debugLogs) return;
-  if (config.debugLogs && typeof config.debugLogs === 'object' && !('isRunningAdapterTests' in config.debugLogs)) {
+  if (
+    config.debugLogs &&
+    typeof config.debugLogs === "object" &&
+    !("isRunningAdapterTests" in config.debugLogs)
+  ) {
     if (method === "create" && !config.debugLogs.create) {
       return;
     } else if (method === "update" && !config.debugLogs.update) {
       return;
-    } else if (
-      method === "updateMany" &&
-      !config.debugLogs.updateMany
-    ) {
+    } else if (method === "updateMany" && !config.debugLogs.updateMany) {
       return;
     } else if (method === "findOne" && !config.debugLogs.findOne) {
       return;
@@ -131,10 +137,7 @@ export function logQuery(config: SurrealDBAdapterConfig | undefined, debugLog: (
       return;
     } else if (method === "delete" && !config.debugLogs.delete) {
       return;
-    } else if (
-      method === "deleteMany" &&
-      !config.debugLogs.deleteMany
-    ) {
+    } else if (method === "deleteMany" && !config.debugLogs.deleteMany) {
       return;
     } else if (method === "count" && !config.debugLogs.count) {
       return;
@@ -147,7 +150,7 @@ export function logQuery(config: SurrealDBAdapterConfig | undefined, debugLog: (
 
   // Replace parameters with actual values
   Object.entries(params).forEach(([paramName, value]) => {
-    const paramPattern = new RegExp(`\\$${paramName}\\b`, 'g');
+    const paramPattern = new RegExp(`\\$${paramName}\\b`, "g");
     let formattedValue: string;
 
     if (value instanceof RecordId) {
@@ -176,14 +179,14 @@ export function logQuery(config: SurrealDBAdapterConfig | undefined, debugLog: (
     bg: {
       obsidian_violet: "\x1b[48;5;233m",
       black: "\x1b[40m",
-    }
-  }
+    },
+  };
   function formatLogLine(lang: string, query: string) {
-    let transationId = `${colors.fg.magenta}###`
-    let stepString = `${colors.bg.black}${colors.fg.yellow}[0/#]${colors.reset}`
-    let methodString = `${colors.bright}${method}`
-    let preparedString = `${colors.dim}(PreparedQuery)${colors.reset}:`
-    const PADDING = '  ';
+    let transationId = `${colors.fg.magenta}###`;
+    let stepString = `${colors.bg.black}${colors.fg.yellow}[0/#]${colors.reset}`;
+    let methodString = `${colors.bright}${method}`;
+    let preparedString = `${colors.dim}(PreparedQuery)${colors.reset}:`;
+    const PADDING = "  ";
     let formattedString = `${colors.bg.obsidian_violet}`;
     formattedString += PADDING;
     formattedString += `${colors.fg.surreal_purple}[${lang}]`;
@@ -193,7 +196,7 @@ export function logQuery(config: SurrealDBAdapterConfig | undefined, debugLog: (
     return `${transationId} ${stepString} ${methodString} ${preparedString} \n\n${formattedString}\n\n`;
   }
 
-  debugLog(`${formatLogLine('SurrealQL', readableQuery)}`);
+  debugLog(`${formatLogLine("SurrealQL", readableQuery)}`);
 }
 /**
  * Declarative error handling configuration for adapter operations.
@@ -206,7 +209,11 @@ export const ERROR_HANDLERS = {
       );
     }
   },
-  fieldMappingSkipped: (rule: string, reason: string, config?: SurrealDBAdapterConfig) => {
+  fieldMappingSkipped: (
+    rule: string,
+    reason: string,
+    config?: SurrealDBAdapterConfig,
+  ) => {
     if (config?.debugLogs) {
       logger.debug(
         `[surreal-better-auth]: Skipping field mapping rule for '${rule}': ${reason} `,
@@ -338,7 +345,16 @@ export function serializeRecordIdFields(
   tableName: string,
   data: Record<string, any>,
   getReferencedModelFn: (tableName: string, fieldName: string) => string | null,
-  buildSpecialCasesFn: () => Record<string, Record<string, { condition?: (data: Record<string, any>) => boolean; recordTable: string }>>,
+  buildSpecialCasesFn: () => Record<
+    string,
+    Record<
+      string,
+      {
+        condition?: (data: Record<string, any>) => boolean;
+        recordTable: string;
+      }
+    >
+  >,
   config?: SurrealDBAdapterConfig,
 ): Record<string, any> {
   const out = { ...data };
@@ -424,8 +440,7 @@ export function extractDirectRecords(
 
   // Find id IN [...] condition (multiple records)
   const idInIndex = where.findIndex(
-    (w) =>
-      w.field === "id" && w.operator === "in" && Array.isArray(w.value),
+    (w) => w.field === "id" && w.operator === "in" && Array.isArray(w.value),
   );
   if (idInIndex !== -1) {
     const idInCondition = where[idInIndex];
@@ -517,8 +532,7 @@ export function buildWhereClauseParts(
       operator = "eq",
       connector = "AND",
     } = w;
-    if (operator === "in" && Array.isArray(value) && value.length === 0)
-      return;
+    if (operator === "in" && Array.isArray(value) && value.length === 0) return;
 
     const fieldName = getFieldName({ model, field: internalField });
 

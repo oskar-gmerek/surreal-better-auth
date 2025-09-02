@@ -18,11 +18,11 @@
     "release:version": "cd packages/surreal-better-auth && node -p \"require('./package.json').version\"",
     "release:status": "node scripts/check-release.js",
     "setup": "bun install && echo '✅ Setup complete! Run: bun run release:status'",
-    "create:schema": "cd examples/sk &&  bun run create:schema"
+    "create:schema": "cd examples/sk &&  bun run create:schema",
+    "biome:check": "bunx --bun biome format .",
+    "biome:format": "bunx --bun biome format --write .",
+    "biome:lint": "bunx --bun biome lint"
   },
   "type": "module",
-  "workspaces": [
-    "packages/*",
-    "examples/*"
-  ]
+  "workspaces": ["packages/*", "examples/*"]
 }

@@ -1,214 +1,224 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
-    import { authClient } from "$lib/auth-client";
-    import { Button } from "bits-ui";
+import { goto } from "$app/navigation";
+import { authClient } from "$lib/auth-client";
+import { Button } from "bits-ui";
 
-    const session = authClient.useSession();
+const session = authClient.useSession();
 
-    // Redirect if not authenticated
-    $effect(() => {
-        if (!$session.isPending && !$session.isRefetching && !$session.data) {
-            goto("/auth/sign/in");
-        }
-    });
+// Redirect if not authenticated
+$effect(() => {
+  if (!$session.isPending && !$session.isRefetching && !$session.data) {
+    goto("/auth/sign/in");
+  }
+});
 
-    // Form states
-    let profileForm = $state({
-        name: "",
-        displayUsername: "",
-        username: "",
-        email: ""
-    });
+// Form states
+let profileForm = $state({
+  name: "",
+  displayUsername: "",
+  username: "",
+  email: "",
+});
 
-    let passwordForm = $state({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
-    });
+let passwordForm = $state({
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+});
 
-    let emailForm = $state({
-        newEmail: ""
-    });
+let emailForm = $state({
+  newEmail: "",
+});
 
-    // UI states
-    let loading = $state({
-        profile: false,
-        password: false,
-        email: false,
-        emailVerification: false,
-        deleteAccount: false
-    });
+// UI states
+let loading = $state({
+  profile: false,
+  password: false,
+  email: false,
+  emailVerification: false,
+  deleteAccount: false,
+});
 
-    let messages = $state({
-        profile: "",
-        password: "",
-        email: "",
-        emailVerification: "",
-        deleteAccount: ""
-    });
+let messages = $state({
+  profile: "",
+  password: "",
+  email: "",
+  emailVerification: "",
+  deleteAccount: "",
+});
 
-    let errors = $state({
-        profile: "",
-        password: "",
-        email: "",
-        emailVerification: "",
-        deleteAccount: ""
-    });
+let errors = $state({
+  profile: "",
+  password: "",
+  email: "",
+  emailVerification: "",
+  deleteAccount: "",
+});
 
-    let showDeleteConfirm = $state(false);
-    let deleteConfirmText = $state("");
+let showDeleteConfirm = $state(false);
+let deleteConfirmText = $state("");
 
-    function normalizeUsername(username: string) {
-        return username.toLowerCase().replace(/ /g, '_').replace(/[^a-z0-9_]/g, '');
+function normalizeUsername(username: string) {
+  return username
+    .toLowerCase()
+    .replace(/ /g, "_")
+    .replace(/[^a-z0-9_]/g, "");
+}
+
+function clearMessage(type: keyof typeof messages) {
+  messages[type] = "";
+  errors[type] = "";
+}
+
+async function updateProfile(event: SubmitEvent) {
+  event.preventDefault();
+  try {
+    loading.profile = true;
+    clearMessage("profile");
+
+    const normalizedUsername = normalizeUsername(profileForm.username);
+
+    // Check username availability if it changed
+    if (normalizedUsername !== $session.data?.user.username) {
+      const isAvailable = await authClient.isUsernameAvailable({
+        username: normalizedUsername,
+      });
+
+      if (!isAvailable.data?.available) {
+        errors.profile = "Username is not available";
+        return;
+      }
     }
 
-    function clearMessage(type: keyof typeof messages) {
-        messages[type] = "";
-        errors[type] = "";
-    }
-
-    async function updateProfile(event: SubmitEvent) {
-        event.preventDefault();
-        try {
-            loading.profile = true;
-            clearMessage('profile');
-
-            const normalizedUsername = normalizeUsername(profileForm.username);
-            
-            // Check username availability if it changed
-            if (normalizedUsername !== $session.data?.user.username) {
-                const isAvailable = await authClient.isUsernameAvailable({
-                    username: normalizedUsername
-                });
-
-                if (!isAvailable.data?.available) {
-                    errors.profile = "Username is not available";
-                    return;
-                }
-            }
-
-            await authClient.updateUser({
-                name: profileForm.name,
-                displayUsername: profileForm.displayUsername,
-                username: normalizedUsername
-            });
-
-            messages.profile = "Profile updated successfully!";
-        } catch (err) {
-            errors.profile = "Failed to update profile: " + (err as Error).message;
-        } finally {
-            loading.profile = false;
-        }
-    }
-
-    async function changePassword(event: SubmitEvent) {
-        event.preventDefault();
-        try {
-            loading.password = true;
-            clearMessage('password');
-
-            if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-                errors.password = "New passwords don't match";
-                return;
-            }
-
-            if (passwordForm.newPassword.length < 8) {
-                errors.password = "Password must be at least 8 characters long";
-                return;
-            }
-
-            await authClient.changePassword({
-                currentPassword: passwordForm.currentPassword,
-                newPassword: passwordForm.newPassword
-            });
-
-            messages.password = "Password changed successfully!";
-            passwordForm = { currentPassword: "", newPassword: "", confirmPassword: "" };
-        } catch (err) {
-            errors.password = "Failed to change password: " + (err as Error).message;
-        } finally {
-            loading.password = false;
-        }
-    }
-
-    async function changeEmail(event: SubmitEvent) {
-        event.preventDefault();
-        try {
-            loading.email = true;
-            clearMessage('email');
-
-            await authClient.changeEmail({
-                newEmail: emailForm.newEmail
-            });
-
-            messages.email = "Email change request sent! Check your new email for verification.";
-            emailForm.newEmail = "";
-        } catch (err) {
-            errors.email = "Failed to change email: " + (err as Error).message;
-        } finally {
-            loading.email = false;
-        }
-    }
-
-    async function sendEmailVerification() {
-        try {
-            loading.emailVerification = true;
-            clearMessage('emailVerification');
-
-            await authClient.sendVerificationEmail({
-                email: $session.data?.user.email || ""
-            });
-
-            messages.emailVerification = "Verification email sent! Check your inbox.";
-        } catch (err) {
-            errors.emailVerification = "Failed to send verification email: " + (err as Error).message;
-        } finally {
-            loading.emailVerification = false;
-        }
-    }
-
-    async function deleteAccount() {
-        try {
-            loading.deleteAccount = true;
-            clearMessage('deleteAccount');
-
-            if (deleteConfirmText !== "DELETE") {
-                errors.deleteAccount = "Please type 'DELETE' to confirm";
-                return;
-            }
-
-            await authClient.deleteUser();
-            
-            // Redirect to home after successful deletion
-            goto('/');
-        } catch (err) {
-            errors.deleteAccount = "Failed to delete account: " + (err as Error).message;
-        } finally {
-            loading.deleteAccount = false;
-        }
-    }
-
-    function formatDate(date: string | Date) {
-        return new Date(date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    }
-
-    // Initialize form with current user data
-    $effect.pre(() => {
-        if ($session.data?.user) {
-            profileForm = {
-                name: $session.data.user.name || "",
-                displayUsername: $session.data.user.displayUsername || "",
-                username: $session.data.user.username || "",
-                email: $session.data.user.email || ""
-            };
-        }
+    await authClient.updateUser({
+      name: profileForm.name,
+      displayUsername: profileForm.displayUsername,
+      username: normalizedUsername,
     });
+
+    messages.profile = "Profile updated successfully!";
+  } catch (err) {
+    errors.profile = "Failed to update profile: " + (err as Error).message;
+  } finally {
+    loading.profile = false;
+  }
+}
+
+async function changePassword(event: SubmitEvent) {
+  event.preventDefault();
+  try {
+    loading.password = true;
+    clearMessage("password");
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      errors.password = "New passwords don't match";
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      errors.password = "Password must be at least 8 characters long";
+      return;
+    }
+
+    await authClient.changePassword({
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword,
+    });
+
+    messages.password = "Password changed successfully!";
+    passwordForm = {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    };
+  } catch (err) {
+    errors.password = "Failed to change password: " + (err as Error).message;
+  } finally {
+    loading.password = false;
+  }
+}
+
+async function changeEmail(event: SubmitEvent) {
+  event.preventDefault();
+  try {
+    loading.email = true;
+    clearMessage("email");
+
+    await authClient.changeEmail({
+      newEmail: emailForm.newEmail,
+    });
+
+    messages.email =
+      "Email change request sent! Check your new email for verification.";
+    emailForm.newEmail = "";
+  } catch (err) {
+    errors.email = "Failed to change email: " + (err as Error).message;
+  } finally {
+    loading.email = false;
+  }
+}
+
+async function sendEmailVerification() {
+  try {
+    loading.emailVerification = true;
+    clearMessage("emailVerification");
+
+    await authClient.sendVerificationEmail({
+      email: $session.data?.user.email || "",
+    });
+
+    messages.emailVerification = "Verification email sent! Check your inbox.";
+  } catch (err) {
+    errors.emailVerification =
+      "Failed to send verification email: " + (err as Error).message;
+  } finally {
+    loading.emailVerification = false;
+  }
+}
+
+async function deleteAccount() {
+  try {
+    loading.deleteAccount = true;
+    clearMessage("deleteAccount");
+
+    if (deleteConfirmText !== "DELETE") {
+      errors.deleteAccount = "Please type 'DELETE' to confirm";
+      return;
+    }
+
+    await authClient.deleteUser();
+
+    // Redirect to home after successful deletion
+    goto("/");
+  } catch (err) {
+    errors.deleteAccount =
+      "Failed to delete account: " + (err as Error).message;
+  } finally {
+    loading.deleteAccount = false;
+  }
+}
+
+function formatDate(date: string | Date) {
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// Initialize form with current user data
+$effect.pre(() => {
+  if ($session.data?.user) {
+    profileForm = {
+      name: $session.data.user.name || "",
+      displayUsername: $session.data.user.displayUsername || "",
+      username: $session.data.user.username || "",
+      email: $session.data.user.email || "",
+    };
+  }
+});
 </script>
 
 <div class="container">

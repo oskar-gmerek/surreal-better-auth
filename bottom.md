@@ -1,11 +1,11 @@
-<!-- include: packages/surreal-better-auth/README.md -->
----
+## <!-- include: packages/surreal-better-auth/README.md -->
 
 ## 🧪 Development & Testing
 
 This monorepo includes comprehensive testing to ensure the adapter works reliably:
 
 ### Quick Commands
+
 ```bash
 # Install dependencies
 bun install

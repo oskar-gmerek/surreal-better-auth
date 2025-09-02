@@ -1,1 +1,4 @@
 bun = "1.2.20"
+
+[plugins]
+biome = "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/biome/plugin.toml"

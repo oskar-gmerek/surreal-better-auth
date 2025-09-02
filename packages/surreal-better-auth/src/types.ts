@@ -40,7 +40,15 @@ export interface SurrealDBAdapterConfig {
 /**
  * Adapter method names for logging and debugging.
  */
-export type AdapterMethod = 'create' | 'update' | 'updateMany' | 'findOne' | 'findMany' | 'delete' | 'deleteMany' | 'count'
+export type AdapterMethod =
+  | "create"
+  | "update"
+  | "updateMany"
+  | "findOne"
+  | "findMany"
+  | "delete"
+  | "deleteMany"
+  | "count";
 
 /**
  * Rule for special field-to-table mappings with optional conditions.

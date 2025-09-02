@@ -1,5 +1,3 @@
-import type { Config } from '@master/css'
+import type { Config } from "@master/css";
 
-export default {
-
-} as Config
+export default {} as Config;

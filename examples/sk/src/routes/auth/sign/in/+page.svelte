@@ -1,43 +1,43 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
-    import { authClient, signIn } from "$lib/auth-client";
-    import { Button } from "bits-ui";
+import { goto } from "$app/navigation";
+import { authClient, signIn } from "$lib/auth-client";
+import { Button } from "bits-ui";
 
-    const session = authClient.useSession();
-    let email = $state('');
-    let password = $state('');
-    let loading = $state(false);
-    let error = $state('');
+const session = authClient.useSession();
+let email = $state("");
+let password = $state("");
+let loading = $state(false);
+let error = $state("");
 
-    const handleSignIn = async (event: SubmitEvent) => {
-        event.preventDefault();
-        loading = true;
-        error = '';
-        
-        await signIn.email(
-            {
-                email: email,
-                password: password,
-                callbackURL: "http://localhost:3000/",
-            },
-            {
-                onSuccess() {
-                    goto('/');
-                },
-                onError(context) {
-                    error = context.error.message;
-                    loading = false;
-                },
-            },
-        );
-    };
+const handleSignIn = async (event: SubmitEvent) => {
+  event.preventDefault();
+  loading = true;
+  error = "";
 
-    // Redirect if already authenticated
-    $effect(() => {
-        if ($session.data) {
-            goto('/');
-        }
-    });
+  await signIn.email(
+    {
+      email: email,
+      password: password,
+      callbackURL: "http://localhost:3000/",
+    },
+    {
+      onSuccess() {
+        goto("/");
+      },
+      onError(context) {
+        error = context.error.message;
+        loading = false;
+      },
+    },
+  );
+};
+
+// Redirect if already authenticated
+$effect(() => {
+  if ($session.data) {
+    goto("/");
+  }
+});
 </script>
 
 <svelte:head>

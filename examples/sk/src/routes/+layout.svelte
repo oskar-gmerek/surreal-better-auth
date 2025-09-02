@@ -1,18 +1,18 @@
 <script lang="ts">
-    import { goto } from '$app/navigation';
-	import favicon from '$lib/assets/favicon.svg';
-	import { authClient } from "$lib/auth-client";
-	import { Button } from "bits-ui";
+import { goto } from "$app/navigation";
+import favicon from "$lib/assets/favicon.svg";
+import { authClient } from "$lib/auth-client";
+import { Button } from "bits-ui";
 
-	let { children } = $props();
-	
-	const session = authClient.useSession();
+let { children } = $props();
 
-	async function logout() {
-		await authClient.signOut({
-			fetchOptions: {onSuccess: () => goto('/auth/sign/in')}
-		});
-	}
+const session = authClient.useSession();
+
+async function logout() {
+  await authClient.signOut({
+    fetchOptions: { onSuccess: () => goto("/auth/sign/in") },
+  });
+}
 </script>
 
 <svelte:head>

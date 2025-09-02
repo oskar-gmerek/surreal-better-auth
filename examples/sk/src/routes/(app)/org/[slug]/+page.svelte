@@ -1,75 +1,74 @@
 <script lang="ts">
-    import { page } from "$app/stores";
-    import { goto } from "$app/navigation";
-    import { authClient } from "$lib/auth-client";
-    import { Button } from "bits-ui";
-    import { onMount } from "svelte";
+import { page } from "$app/stores";
+import { goto } from "$app/navigation";
+import { authClient } from "$lib/auth-client";
+import { Button } from "bits-ui";
+import { onMount } from "svelte";
 
-    const session = authClient.useSession();
-    const orgsResult = authClient.useListOrganizations();
-    
-    let slug = $derived($page.params.slug);
-    let organization = $state<any>(null);
-    let loading = $state(true);
-    let isUserMember = $state(false);
-    let memberCount = $state(0);
-    let members = $state<any[]>([]);
+const session = authClient.useSession();
+const orgsResult = authClient.useListOrganizations();
 
-    async function loadOrganization() {
-        try {
-            loading = true;
-            
-            // Get all organizations to find the one with matching slug
-            const organizations = $orgsResult.data || [];
-            
-            const foundOrg = organizations.find((org: any) => org.slug === slug);
-            
-            if (!foundOrg) {
-                // Organization not found or user doesn't have access
-                organization = null;
-                return;
-            }
+let slug = $derived($page.params.slug);
+let organization = $state<any>(null);
+let loading = $state(true);
+let isUserMember = $state(false);
+let memberCount = $state(0);
+let members = $state<any[]>([]);
 
-            organization = foundOrg;
-            
-            // Check if user is a member (if they can see it in their list, they're a member)
-            isUserMember = true;
+async function loadOrganization() {
+  try {
+    loading = true;
 
-            // Load member count by setting this org as active and getting member data
-            try {
-                await authClient.organization.setActive({
-                    organizationId: foundOrg.id
-                });
-                
-                const membersResult = await authClient.organization.listMembers();
-                if (membersResult.data) {
-                    members = membersResult.data.members || [];
-                    memberCount = members.length;
-                }
-            } catch (err) {
-                console.error("Failed to load member count:", err);
-                memberCount = 0;
-            }
+    // Get all organizations to find the one with matching slug
+    const organizations = $orgsResult.data || [];
 
-        } catch (err) {
-            console.error("Failed to load organization:", err);
-            organization = null;
-        } finally {
-            loading = false;
-        }
+    const foundOrg = organizations.find((org: any) => org.slug === slug);
+
+    if (!foundOrg) {
+      // Organization not found or user doesn't have access
+      organization = null;
+      return;
     }
 
-    function formatDate(date: string | Date) {
-        return new Date(date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        });
-    }
+    organization = foundOrg;
 
-    onMount(() => {
-        loadOrganization();
-    });
+    // Check if user is a member (if they can see it in their list, they're a member)
+    isUserMember = true;
+
+    // Load member count by setting this org as active and getting member data
+    try {
+      await authClient.organization.setActive({
+        organizationId: foundOrg.id,
+      });
+
+      const membersResult = await authClient.organization.listMembers();
+      if (membersResult.data) {
+        members = membersResult.data.members || [];
+        memberCount = members.length;
+      }
+    } catch (err) {
+      console.error("Failed to load member count:", err);
+      memberCount = 0;
+    }
+  } catch (err) {
+    console.error("Failed to load organization:", err);
+    organization = null;
+  } finally {
+    loading = false;
+  }
+}
+
+function formatDate(date: string | Date) {
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+onMount(() => {
+  loadOrganization();
+});
 </script>
 
 <svelte:head>

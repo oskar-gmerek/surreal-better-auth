@@ -1,6 +1,6 @@
   <picture align="center">
-    <source srcset="./hero.webp" alt="surreal-better-auth banner [dark]"  media="(prefers-color-scheme: dark)">
-    <source srcset="./hero-white.webp" alt="surreal-better-auth banner [light]" media="(prefers-color-scheme: light)">
+    <source srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero.webp?raw=true" alt="surreal-better-auth banner [dark]"  media="(prefers-color-scheme: dark)">
+    <source srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero-white.webp?raw=true" alt="surreal-better-auth banner [light]" media="(prefers-color-scheme: light)">
   </picture>
 
 

@@ -1,7 +1,7 @@
 {
   "name": "surreal-better-auth",
   "description": "SurrealDB adapter for Better Auth",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "author": {
     "name": "Oskar Gmerek",
     "url": "https://oskargmerek.com",

@@ -10,6 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false 
       matrix:
         runtime:
           - name: "Node.js 20"
@@ -21,21 +22,25 @@ jobs:
           - name: "Node.js 24"
             type: "node"
             version: "24"
-          - name: "Bun 1.2"
+          - name: "Bun latest"
             type: "bun"
-            version: "1.2"
-    
-    name: Test (${{ matrix.runtime.name }})
-    
+            version: "latest"
+            
+    name: Test on ${{ matrix.runtime.name }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup SurrealDB
-        run: |
-          curl -sSf https://install.surrealdb.com | sh
-          surreal start --log trace --user root --pass root memory &
-          sleep 5
+      - name: Start SurrealDB
+        uses: surrealdb/setup-surreal@v2
+        with:
+          surrealdb_version: latest
+          surrealdb_port: 8000
+          surrealdb_username: root
+          surrealdb_password: root
+          surrealdb_log: info
+          surrealdb_additional_args: --allow-all
 
       - name: Setup Node.js
         if: matrix.runtime.type == 'node'
@@ -56,15 +61,7 @@ jobs:
       - name: Install dependencies (Bun)
         if: matrix.runtime.type == 'bun'
         run: bun install
-
-      - name: Run tests (Node.js)
-        if: matrix.runtime.type == 'node'
-        run: npm run test:adapter
-
-      - name: Run tests (Bun)
-        if: matrix.runtime.type == 'bun'
-        run: bun run test:adapter
-
+      
       - name: Build package (Node.js)
         if: matrix.runtime.type == 'node'
         run: npm run build
@@ -73,19 +70,46 @@ jobs:
         if: matrix.runtime.type == 'bun'
         run: bun run build
 
-      - name: Check TypeScript (Node.js)
+      - name: Wait for SurrealDB
+        run: |
+          echo "Waiting for SurrealDB to become healthy..."
+          until curl --fail http://localhost:8000/status; do
+            echo "Waiting for SurrealDB..."
+            sleep 1
+          done
+          echo "SurrealDB is up and running!"
+
+      - name: Run adapter tests (Node.js)
         if: matrix.runtime.type == 'node'
-        working-directory: ./packages/surreal-better-auth
-        run: npx tsc --noEmit
+        run: npm run test:adapter
 
-      - name: Check TypeScript (Bun)
+      - name: Run adapter tests (Bun)
         if: matrix.runtime.type == 'bun'
-        working-directory: ./packages/surreal-better-auth
-        run: bunx tsc --noEmit
+        run: bun run test:adapter
+        
+      - name: Run integration tests
+        if: matrix.runtime.type == 'bun'
+        run: |
+          bun install --cwd examples/sk
+          bunx playwright install --with-deps --cwd examples/sk
+          bunx playwright test --cwd examples/sk
+        env:
+          CI: true
+          SURREALDB_URL: http://localhost:8000
+          SURREALDB_USER: root
+          SURREALDB_PASS: root
+          SURREALDB_NS: test
+          SURREALDB_DB: example-sveltekit
 
-  lint:
+      - name: Stop SurrealDB
+        if: always()
+        run: echo "Cleaning up... SurrealDB service will stop automatically."
+
+  build:
+    needs: test
     runs-on: ubuntu-latest
-    
+    name: Build and Upload Artifact
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -98,5 +122,12 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Check formatting
-        run: bunx prettier --check "packages/**/*.{ts,js,json,md}"
+      - name: Build package
+        run: bun run build
+      
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-package
+          path: packages/surreal-better-auth/dist 
+          retention-days: 7

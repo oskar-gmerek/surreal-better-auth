@@ -1,346 +1,118 @@
 name: Release
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed  
     branches:
       - beta
-    paths:
-      - 'packages/surreal-better-auth/**'
-  pull_request:
-    branches:
       - main
-    types: [closed]
-    paths:
-      - 'packages/surreal-better-auth/**'
 
 jobs:
-  check-changes:
-    if: github.ref == 'refs/heads/beta' && github.event_name == 'push'
+  release:
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    outputs:
-      has_changes: ${{ steps.changes.outputs.has_changes }}
+    
     steps:
-      - name: Checkout
+      - name: Checkout code to get repository history and package.json
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
-      - name: Check for package changes
-        id: changes
-        run: |
-          # Check if there are meaningful changes in the package directory
-          if git diff --name-only HEAD~1 HEAD | grep -E '^packages/surreal-better-auth/(src/|package\.json|tsup\.config|README\.md)' > /dev/null; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "Found changes in package source code or config"
-          else
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "No meaningful changes found for release"
-          fi
-
-  beta-release:
-    needs: check-changes
-    if: needs.check-changes.outputs.has_changes == 'true'
-    runs-on: ubuntu-latest
-    
-    services:
-      surrealdb:
-        image: surrealdb/surrealdb:latest
-        ports:
-          - 8000:8000
-        options: >-
-          --health-cmd "curl -f http://localhost:8000/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        env:
-          SURREAL_LOG: info
-          SURREAL_USER: root
-          SURREAL_PASS: root
-        # Start SurrealDB with memory storage for testing
-        cmd: start --log info --user root --pass root memory
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: built-package
+          run-id: ${{ github.event.workflow_run.id }}
+          path: packages/surreal-better-auth/dist
+      
+      - name: Setup Bun for versioning scripts
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: Install dependencies
-        run: bun install
-
-      - name: Build package
-        run: bun run build
-
-      - name: Run adapter tests
-        run: bun run test:adapter
-
-      - name: Wait for SurrealDB to be ready
-        run: |
-          timeout 30 bash -c 'until curl -f http://localhost:8000/health; do sleep 1; done'
-
-      - name: Install example dependencies
-        run: bun install
-        working-directory: examples/sk
-
-      - name: Install Playwright Browsers
-        run: bunx playwright install --with-deps
-        working-directory: examples/sk
-
-      - name: Run integration tests
-        run: bunx playwright test
-        working-directory: examples/sk
-        env:
-          CI: true
-          SURREALDB_URL: http://localhost:8000
-          SURREALDB_USER: root
-          SURREALDB_PASS: root
-          SURREALDB_NS: test
-          SURREALDB_DB: example-sveltekit
-
-      - name: Get current version and increment beta
-        id: version
-        run: |
-          cd packages/surreal-better-auth
-          CURRENT=$(node -p "require('./package.json').version")
-          
-          # If it's already a beta, increment it
-          if [[ $CURRENT == *"-beta."* ]]; then
-            NEW_VERSION=$(npm version prerelease --preid=beta --no-git-tag-version)
-          else
-            # If it's stable, make it beta.0
-            NEW_VERSION=$(npm version prerelease --preid=beta --no-git-tag-version)
-          fi
-          
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "current=$CURRENT" >> $GITHUB_OUTPUT
-
-      - name: Commit version bump
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add packages/surreal-better-auth/package.json
-          git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
-          git push
-
       - name: Setup Node.js for npm
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
+      # --- BETA ---
+      - name: Get current version and increment beta
+        if: github.event.workflow_run.head_branch == 'beta'
+        id: version_beta
+        run: |
+          cd packages/surreal-better-auth
+          CURRENT=$(node -p "require('./package.json').version")
+          if [[ $CURRENT == *"-beta."* ]]; then
+            NEW_VERSION=$(npm version prerelease --preid=beta --no-git-tag-version)
+          else
+            NEW_VERSION=$(npm version prerelease --preid=beta --no-git-tag-version)
+          fi
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+      
       - name: Publish beta to npm
+        if: github.event.workflow_run.head_branch == 'beta'
         run: |
           cd packages/surreal-better-auth
           npm publish --tag beta
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Create beta release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: Beta Release ${{ steps.version.outputs.version }}
-          prerelease: true
-          generate_release_notes: true
-
-  check-pr-changes:
-    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'beta'
-    runs-on: ubuntu-latest
-    outputs:
-      has_changes: ${{ steps.changes.outputs.has_changes }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Check for package changes in PR
-        id: changes
-        run: |
-          # Get list of changed files in the PR
-          gh pr view ${{ github.event.pull_request.number }} --json files --jq '.files[].path' > changed_files.txt
-          
-          # Check if there are meaningful changes in the package directory
-          # Include README.md as it's displayed on npm package page
-          if grep -E '^packages/surreal-better-auth/(src/|package\.json|tsup\.config|README\.md)' changed_files.txt > /dev/null; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "Found changes in package source code or config"
-          else
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "No meaningful changes found for release"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  stable-release:
-    needs: check-pr-changes
-    if: needs.check-pr-changes.outputs.has_changes == 'true'
-    runs-on: ubuntu-latest
-    
-    services:
-      surrealdb:
-        image: surrealdb/surrealdb:latest
-        ports:
-          - 8000:8000
-        options: >-
-          --health-cmd "curl -f http://localhost:8000/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        env:
-          SURREAL_LOG: info
-          SURREAL_USER: root
-          SURREAL_PASS: root
-        # Start SurrealDB with memory storage for testing
-        cmd: start --log info --user root --pass root memory
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Build package
-        run: bun run build
-
-      - name: Run adapter tests
-        run: bun run test:adapter
-
-      - name: Wait for SurrealDB to be ready
-        run: |
-          timeout 30 bash -c 'until curl -f http://localhost:8000/health; do sleep 1; done'
-
-      - name: Install example dependencies
-        run: bun install
-        working-directory: examples/sk
-
-      - name: Install Playwright Browsers
-        run: bunx playwright install --with-deps
-        working-directory: examples/sk
-
-      - name: Run integration tests
-        run: bunx playwright test
-        working-directory: examples/sk
-        env:
-          CI: true
-          SURREALDB_URL: http://localhost:8000
-          SURREALDB_USER: root
-          SURREALDB_PASS: root
-          SURREALDB_NS: test
-          SURREALDB_DB: example-sveltekit
-
-      - name: Get version and make stable
-        id: version
-        run: |
-          cd packages/surreal-better-auth
-          CURRENT=$(node -p "require('./package.json').version")
-          
-          # Remove beta suffix (1.0.0-beta.1 -> 1.0.0)
-          STABLE_VERSION=$(echo $CURRENT | sed 's/-beta\.[0-9]*//')
-          
-          # Update package.json to stable version
-          npm version $STABLE_VERSION --no-git-tag-version
-          
-          echo "version=v$STABLE_VERSION" >> $GITHUB_OUTPUT
-          echo "stable_version=$STABLE_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Commit stable version
+      - name: Commit version bump and push (beta)
+        if: github.event.workflow_run.head_branch == 'beta'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add packages/surreal-better-auth/package.json
-          git commit -m "chore: release stable version ${{ steps.version.outputs.stable_version }}"
-          git tag ${{ steps.version.outputs.version }}
+          git commit -m "chore: bump version to ${{ steps.version_beta.outputs.version }} [skip ci]"
           git push
-          git push --tags
 
-      - name: Setup Node.js for npm
-        uses: actions/setup-node@v4
+      - name: Create beta GitHub release
+        if: github.event.workflow_run.head_branch == 'beta'
+        uses: softprops/action-gh-release@v2
         with:
-          node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
+          tag_name: ${{ steps.version_beta.outputs.version }}
+          name: Beta Release ${{ steps.version_beta.outputs.version }}
+          prerelease: true
+          generate_release_notes: true
+
+      # --- STABLE ---
+      - name: Get version and make stable
+        if: github.event.workflow_run.head_branch == 'main'
+        id: version_stable
+        run: |
+          cd packages/surreal-better-auth
+          CURRENT=$(node -p "require('./package.json').version")
+          STABLE_VERSION=$(echo $CURRENT | sed 's/-beta\.[0-9]*//')
+          npm version $STABLE_VERSION --no-git-tag-version
+          echo "version=v$STABLE_VERSION" >> $GITHUB_OUTPUT
+          echo "stable_version=$STABLE_VERSION" >> $GITHUB_OUTPUT
 
       - name: Publish stable to npm
+        if: github.event.workflow_run.head_branch == 'main'
         run: |
           cd packages/surreal-better-auth
           npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Check if first major release
-        id: check-first
+      - name: Commit stable version, tag and push
+        if: github.event.workflow_run.head_branch == 'main'
         run: |
-          VERSION="${{ steps.version.outputs.stable_version }}"
-          if [[ "$VERSION" == "1.0.0" ]]; then
-            echo "is_first=true" >> $GITHUB_OUTPUT
-          else
-            echo "is_first=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create stable release (first major - manual notes)
-        if: steps.check-first.outputs.is_first == 'true'
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add packages/surreal-better-auth/package.json
+          git commit -m "chore: release stable version ${{ steps.version_stable.outputs.stable_version }} [skip ci]"
+          git tag ${{ steps.version_stable.outputs.version }}
+          git push
+          git push --tags
+      
+      - name: Create stable GitHub release
+        if: github.event.workflow_run.head_branch == 'main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: Release ${{ steps.version.outputs.stable_version }}
-          draft: true
-          body: |
-            **Released:** $(date '+%B %d, %Y')
-            
-            This release marks a complete rewrite of the SurrealDB adapter. It has been re-engineered from the ground up to align with the latest better-auth adapter guidelines, leveraging official tools to provide a more robust, secure, and feature-rich experience.
-            
-            ### 🚀 Features & Enhancements
-            
-            * **Official Adapter Compliance:** The adapter now uses the `createAdapter` utility from `better-auth`, ensuring full compatibility with the core library and its features, including CLI-based schema generation.
-            * **Advanced ID Generation:** Introduced a powerful `idGenerator` configuration option. It provides out-of-the-box support for:
-              * **SDK-generated IDs:** `sdk.UUIDv4`, `sdk.UUIDv7`
-              * **Database-generated IDs:** `surreal`, `surreal.ULID`, `surreal.UUID`, `surreal.UUIDv4`, `surreal.UUIDv7`, `surreal.guid`
-            * **Priority for Custom ID Functions:** The adapter fully respects the `advanced.database.generateId()` function from `better-auth`, giving it priority over the `idGenerator` setting.
-            * **Query Optimization:** Implemented significant performance optimizations by operating directly on records wherever possible (e.g., `findOne`, `update`, `delete` by ID). This also applies to bulk operations, reducing query complexity.
-            * **Enhanced Security:** All queries are now built using `PreparedQuery` to parameterize user-provided data, offering strong protection against injection attacks.
-            * **Intelligent Record Links:** The adapter automatically converts string IDs to SurrealDB Record Links for relational fields. It intelligently detects cases where a value must remain a string to ensure compatibility across the ecosystem.
-            * **Streamlined Schema Generation:** The adapter's `createSchema` function now integrates with the `better-auth` CLI's command for schema generation. This process produces a clean, commented `.surql` file ready for use.
-              * **Note on Application:** While the CLI handles the file generation, the schema must be applied manually to your SurrealDB instance (e.g., via the Surrealist UI or a similar tool). Direct execution of migrations through the `better-auth` CLI is not supported.
-            * **Rich & Indexed Schema:** The generated schema is more detailed and robust, automatically creating recommended indexes on critical fields (e.g., `user.email`, `session.userId`) for better performance.
-            * **Debugging Tools:** Added a `debugLogs` option that, when enabled, prints fully resolved queries to the console, simplifying development and troubleshooting.
-            * **Custom ID Handling:** A new `allowPassingId` option allows you to either provide custom record IDs directly in your data or have them safely removed before insertion.
-            
-            ### 🔧 Refactoring & Architecture
-            
-            * **Complete Rewrite:** The adapter's codebase has been modernized and refactored for improved reliability, maintainability, and to handle numerous edge cases.
-            * **Declarative Logic:** Internal logic now uses declarative mappings for field references, operators, and special cases, making the adapter more predictable and easier to extend.
-            * **Modular Structure:** The project has been split into logical modules (`surreal-adapter.ts`, `helpers.ts`, `types.ts`), enhancing code clarity and organization.
-            * **Standardized Testing:** By adhering to the new guidelines, the adapter can now run the official `better-auth` test suite directly, ensuring consistent and reliable behavior.
-            
-            ### 📦 Build & Packaging
-            
-            * **Monorepo Structure:** The repository is now a monorepo, which will simplify future integration testing and the development of usage examples.
-            * **Modern Build Process:** The package is transpiled to support a wider range of environments, with both ESM and CommonJS builds included.
-            
-            ---
-            
-            ## Installation
-            ```bash
-            npm install surreal-better-auth@latest
-            ```
-            
-            ## Documentation
-            See README.md for complete usage guide.
-            
-            ---
-            *Please edit this release and remove draft status when ready.*
-
-      - name: Create stable release (auto-generated notes)
-        if: steps.check-first.outputs.is_first == 'false'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: Release ${{ steps.version.outputs.stable_version }}
+          tag_name: ${{ steps.version_stable.outputs.version }}
+          name: Release ${{ steps.version_stable.outputs.stable_version }}
           generate_release_notes: true

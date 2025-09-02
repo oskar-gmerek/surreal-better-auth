@@ -22,7 +22,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
       - name: Start SurrealDB
         uses: surrealdb/setup-surreal@v2
         with:
@@ -32,38 +31,30 @@ jobs:
           surrealdb_password: root
           surrealdb_log: info
           surrealdb_additional_args: --allow-all
-          
       - name: Setup Node.js
         if: matrix.runtime.type == 'node'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.runtime.version }}
-          
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-          
       - name: Install dependencies
         run: bun install
-        
       - name: Build package
         run: bun run build
-        
       - name: Wait for SurrealDB
         run: |
           echo "Waiting for SurrealDB..."
           until curl --fail http://localhost:8000/status; do sleep 1; done
           echo "SurrealDB is ready!"
-          
       - name: Run adapter tests (Node.js)
         if: matrix.runtime.type == 'node'
         run: npm run test:adapter
-        
       - name: Run adapter tests (Bun)
         if: matrix.runtime.type == 'bun'
         run: bun run test:adapter
-        
       - name: Run integration tests
         if: matrix.runtime.type == 'bun'
         working-directory: examples/sk
@@ -71,7 +62,6 @@ jobs:
           bun install
           bunx playwright install --with-deps
           bunx playwright test
-
         env:
           CI: true
           SURREALDB_URL: http://localhost:8000
@@ -79,7 +69,6 @@ jobs:
           SURREALDB_PASS: root
           SURREALDB_NS: test
           SURREALDB_DB: example-sveltekit
-          
       - name: Stop SurrealDB
         if: always()
         run: echo "Cleaning up..."
@@ -141,14 +130,26 @@ jobs:
         if: github.ref == 'refs/heads/beta'
         run: |
           cd packages/surreal-better-auth
-          CURRENT=$(node -p "require('./package.json').version")
-          if [[ $CURRENT == *"-beta."* ]]; then
-            NEW_VERSION=$(npm version prerelease --preid=beta --no-git-tag-version)
-          else
-            NEW_VERSION=$(npm version prerelease --preid=beta --no-git-tag-version)
-          fi
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          npm publish --tag beta
+
+          node -e "
+            const fs = require('fs');
+            const path = './package.json';
+            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+            let current = pkg.version;
+            let newVersion;
+            if (current.includes('-beta.')) {
+              let [main, beta] = current.split('-beta.');
+              newVersion = `${main}-beta.${parseInt(beta) + 1}`;
+            } else {
+              newVersion = `${current}-beta.0`;
+            }
+            pkg.version = newVersion;
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+            console.log(`Version bumped to ${newVersion}`);
+            fs.appendFileSync(process.env.GITHUB_ENV, `NEW_VERSION=${newVersion}\n`);
+          "
+
+          bun publish --tag beta
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -175,11 +176,19 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           cd packages/surreal-better-auth
-          CURRENT=$(node -p "require('./package.json').version")
-          STABLE_VERSION=$(echo $CURRENT | sed 's/-beta\.[0-9]*//')
-          npm version $STABLE_VERSION --no-git-tag-version
-          echo "STABLE_VERSION=$STABLE_VERSION" >> $GITHUB_ENV
-          npm publish
+
+          node -e "
+            const fs = require('fs');
+            const path = './package.json';
+            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+            let stableVersion = pkg.version.split('-beta.')[0];
+            pkg.version = stableVersion;
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+            console.log(`Version bumped to ${stableVersion}`);
+            fs.appendFileSync(process.env.GITHUB_ENV, `STABLE_VERSION=${stableVersion}\n`);
+          "
+
+          bun publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

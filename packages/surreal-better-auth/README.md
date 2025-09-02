@@ -1,7 +1,6 @@
   <picture align="center">
-    <source srcset="./hero.webp" media="(prefers-color-scheme: dark)">
-    <source srcset="./hero-white.webp" media="(prefers-color-scheme: light)">
-    <img src="./banner.png" alt="Better Auth Logo">
+    <source srcset="./hero.webp" alt="surreal-better-auth banner [dark]"  media="(prefers-color-scheme: dark)">
+    <source srcset="./hero-white.webp" alt="surreal-better-auth banner [light]" media="(prefers-color-scheme: light)">
   </picture>
 
 

@@ -26,8 +26,13 @@ jobs:
           
           # Replace the include placeholder with actual content
           if [ -f "packages/surreal-better-auth/README.md" ]; then
-            # Create temp file with package content
+            # Create temp file with package content and fix image paths
             cp packages/surreal-better-auth/README.md /tmp/package-readme.md
+            
+            # Fix all relative paths starting with ./ to point to the correct location in monorepo
+            sed -i 's|src="\./|src="./packages/surreal-better-auth/|g' /tmp/package-readme.md
+            sed -i 's|srcset="\./|srcset="./packages/surreal-better-auth/|g' /tmp/package-readme.md
+            sed -i 's|href="\./|href="./packages/surreal-better-auth/|g' /tmp/package-readme.md
             
             # Use sed to replace the include line with file content
             sed -i '/<!-- include: packages\/surreal-better-auth\/README\.md -->/r /tmp/package-readme.md' README.md

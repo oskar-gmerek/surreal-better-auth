@@ -136,11 +136,12 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
+      # --- BETA ---
       - name: Perform Beta Release
         if: github.ref == 'refs/heads/beta'
         run: |
           cp README.md packages/surreal-better-auth/dist/
-          cp LICENSE packages/surreal-better-auth/dist/
+          cp packages/surreal-better-auth/LICENSE packages/surreal-better-auth/dist/
           
           cd packages/surreal-better-auth
           node -e '
@@ -149,7 +150,6 @@ jobs:
             pkg.version = newVersion; fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n"); console.log(`Version bumped to ${newVersion}`);
             fs.appendFileSync(process.env.GITHUB_ENV, `NEW_VERSION=${newVersion}\n`);
           '
-          
           cp package.json dist/
           
           cd dist
@@ -157,7 +157,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # --- BETA ---
       - name: Commit and push version bump (Beta)
         if: github.ref == 'refs/heads/beta'
         run: |
@@ -181,7 +180,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           cp README.md packages/surreal-better-auth/dist/
-          cp LICENSE packages/surreal-better-auth/dist/
+          cp packages/surreal-better-auth/LICENSE packages/surreal-better-auth/dist/
           
           cd packages/surreal-better-auth
           node -e '

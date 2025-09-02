@@ -35,16 +35,8 @@ jobs:
           echo "Creating main README.md from bottom.md template..."
           cp bottom.md README.md
           
-          # Prepare package content with fixed image paths
-          cp packages/surreal-better-auth/README.md /tmp/package-readme.md
-          
-          # Fix all relative paths starting with ./ to point to the correct location in monorepo
-          sed -i 's|src="\./|src="./packages/surreal-better-auth/|g' /tmp/package-readme.md
-          sed -i 's|srcset="\./|srcset="./packages/surreal-better-auth/|g' /tmp/package-readme.md
-          sed -i 's|href="\./|href="./packages/surreal-better-auth/|g' /tmp/package-readme.md
-          
           # Replace the include placeholder with actual content
-          sed -i '/<!-- include: packages\/surreal-better-auth\/README\.md -->/r /tmp/package-readme.md' README.md
+          sed -i '/<!-- include: packages\/surreal-better-auth\/README\.md -->/r packages/surreal-better-auth/README.md' README.md
           sed -i '/<!-- include: packages\/surreal-better-auth\/README\.md -->/d' README.md
           
           echo "Successfully synced package README content"
@@ -54,10 +46,13 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          if git diff --quiet README.md; then
+          # Add README.md (it might be new file)
+          git add README.md
+          
+          # Check if there are any changes to commit
+          if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git add README.md
             git commit -m "docs: sync main README with package README [skip ci]"
             git push
           fi

@@ -2,61 +2,117 @@ name: Release
 
 on:
   workflow_run:
-    workflows:
-      - ci
+    workflows: ["CI"]
     types:
-      - completed
+      - completed  
+    branches:
+      - beta
+      - main
 
 jobs:
   release:
-    name: Create Release
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout repository
+      - name: Checkout code to get repository history and package.json
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: built-package
+          run-id: ${{ github.event.workflow_run.id }}
+          path: packages/surreal-better-auth/dist
+      
+      - name: Setup Bun for versioning scripts
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
-      - name: Install dependencies
-        run: bun install
+      - name: Setup Node.js for npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
 
-      - name: Get current and previous version
-        id: version
+      # --- BETA ---
+      - name: Get current version and increment beta
+        if: github.event.workflow_run.head_branch == 'beta'
+        id: version_beta
         run: |
-          PREV_VERSION=$(git tag --list --sort=-v:refname 'v*' | head -n 1 | sed 's/v//')
-          CURR_VERSION=$(node -p "require('./package.json').version")
-          echo "Previous Version: $PREV_VERSION"
-          echo "Current Version: $CURR_VERSION"
-          if [ "$PREV_VERSION" = "$CURR_VERSION" ]; then
-            echo "Version unchanged. Exiting..."
-            exit 1
+          cd packages/surreal-better-auth
+          CURRENT=$(node -p "require('./package.json').version")
+          if [[ $CURRENT == *"-beta."* ]]; then
+            NEW_VERSION=$(npm version prerelease --preid=beta --no-git-tag-version)
+          else
+            NEW_VERSION=$(npm version prerelease --preid=beta --no-git-tag-version)
           fi
-          echo "version=$CURR_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Generate a changelog
-        uses: orhun/git-cliff-action@v3
-        with:
-          config: cliff.toml
-          args: --verbose
-        env:
-          OUTPUT: CHANGELOG.md
-          GITHUB_REPO: ${{ github.repository }}
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: Release v${{ steps.version.outputs.version }}
-          body_path: CHANGELOG.md
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to npm
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Publish beta to npm
+        if: github.event.workflow_run.head_branch == 'beta'
         run: |
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-          bun publish
+          cd packages/surreal-better-auth
+          npm publish --tag beta
         env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit version bump and push (beta)
+        if: github.event.workflow_run.head_branch == 'beta'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add packages/surreal-better-auth/package.json
+          git commit -m "chore: bump version to ${{ steps.version_beta.outputs.version }} [skip ci]"
+          git push
+
+      - name: Create beta GitHub release
+        if: github.event.workflow_run.head_branch == 'beta'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version_beta.outputs.version }}
+          name: Beta Release ${{ steps.version_beta.outputs.version }}
+          prerelease: true
+          generate_release_notes: true
+
+      # --- STABLE ---
+      - name: Get version and make stable
+        if: github.event.workflow_run.head_branch == 'main'
+        id: version_stable
+        run: |
+          cd packages/surreal-better-auth
+          CURRENT=$(node -p "require('./package.json').version")
+          STABLE_VERSION=$(echo $CURRENT | sed 's/-beta\.[0-9]*//')
+          npm version $STABLE_VERSION --no-git-tag-version
+          echo "version=v$STABLE_VERSION" >> $GITHUB_OUTPUT
+          echo "stable_version=$STABLE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Publish stable to npm
+        if: github.event.workflow_run.head_branch == 'main'
+        run: |
+          cd packages/surreal-better-auth
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit stable version, tag and push
+        if: github.event.workflow_run.head_branch == 'main'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add packages/surreal-better-auth/package.json
+          git commit -m "chore: release stable version ${{ steps.version_stable.outputs.stable_version }} [skip ci]"
+          git tag ${{ steps.version_stable.outputs.version }}
+          git push
+          git push --tags
+      
+      - name: Create stable GitHub release
+        if: github.event.workflow_run.head_branch == 'main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version_stable.outputs.version }}
+          name: Release ${{ steps.version_stable.outputs.stable_version }}
+          generate_release_notes: true

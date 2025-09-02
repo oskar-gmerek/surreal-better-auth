@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows: ["CI"]
     types:
-      - completed  
+      - completed
     branches:
       - beta
       - main
@@ -13,7 +13,11 @@ jobs:
   release:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    
+
+    permissions:
+      actions: read
+      contents: write
+
     steps:
       - name: Checkout code to get repository history and package.json
         uses: actions/checkout@v4
@@ -26,7 +30,7 @@ jobs:
           name: built-package
           run-id: ${{ github.event.workflow_run.id }}
           path: packages/surreal-better-auth/dist
-      
+
       - name: Setup Bun for versioning scripts
         uses: oven-sh/setup-bun@v2
         with:
@@ -35,8 +39,8 @@ jobs:
       - name: Setup Node.js for npm
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
 
       # --- BETA ---
       - name: Get current version and increment beta
@@ -51,7 +55,7 @@ jobs:
             NEW_VERSION=$(npm version prerelease --preid=beta --no-git-tag-version)
           fi
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-      
+
       - name: Publish beta to npm
         if: github.event.workflow_run.head_branch == 'beta'
         run: |
@@ -108,7 +112,7 @@ jobs:
           git tag ${{ steps.version_stable.outputs.version }}
           git push
           git push --tags
-      
+
       - name: Create stable GitHub release
         if: github.event.workflow_run.head_branch == 'main'
         uses: softprops/action-gh-release@v2

@@ -130,25 +130,34 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - name: Setup Node.js for versioning
+      - name: Setup Node.js for publishing
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
 
-      # --- BETA ---
       - name: Perform Beta Release
         if: github.ref == 'refs/heads/beta'
         run: |
+          cp README.md packages/surreal-better-auth/dist/
+          cp LICENSE packages/surreal-better-auth/dist/
+          
           cd packages/surreal-better-auth
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
           node -e '
             const fs = require("fs"); const path = "./package.json"; const pkg = JSON.parse(fs.readFileSync(path, "utf8")); let current = pkg.version; let newVersion;
             if (current.includes("-beta.")) { let [main, beta] = current.split("-beta."); newVersion = `${main}-beta.${parseInt(beta) + 1}`; } else { newVersion = `${current}-beta.0`; }
             pkg.version = newVersion; fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n"); console.log(`Version bumped to ${newVersion}`);
             fs.appendFileSync(process.env.GITHUB_ENV, `NEW_VERSION=${newVersion}\n`);
           '
-          bun publish --tag beta
+          
+          cp package.json dist/
+          
+          cd dist
+          npm publish --tag beta
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # --- BETA ---
       - name: Commit and push version bump (Beta)
         if: github.ref == 'refs/heads/beta'
         run: |
@@ -171,15 +180,22 @@ jobs:
       - name: Perform Stable Release
         if: github.ref == 'refs/heads/main'
         run: |
+          cp README.md packages/surreal-better-auth/dist/
+          cp LICENSE packages/surreal-better-auth/dist/
+          
           cd packages/surreal-better-auth
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
           node -e '
             const fs = require("fs"); const path = "./package.json"; const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
             let stableVersion = pkg.version.split("-beta.")[0]; pkg.version = stableVersion;
             fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n"); console.log(`Version bumped to ${stableVersion}`);
             fs.appendFileSync(process.env.GITHUB_ENV, `STABLE_VERSION=${stableVersion}\n`);
           '
-          bun publish
+          cp package.json dist/
+          
+          cd dist
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Commit, tag and push (Stable)
         if: github.ref == 'refs/heads/main'

@@ -57,11 +57,10 @@ jobs:
         run: bun install
 
       - name: Check formatting
-        run: bunx prettier --check "packages/**/*.{ts,js,json,md}"
+        run: bun run biome:check
 
-      - name: Check TypeScript
-        working-directory: ./packages/surreal-better-auth
-        run: bunx tsc --noEmit
+      - name: Check formatting
+        run: bun run biome:lint
 
       - name: Build package
         run: bun run build

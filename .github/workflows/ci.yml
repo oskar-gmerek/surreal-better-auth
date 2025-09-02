@@ -49,25 +49,14 @@ jobs:
           node-version: ${{ matrix.runtime.version }}
 
       - name: Setup Bun
-        if: matrix.runtime.type == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: ${{ matrix.runtime.version }}
+          bun-version: latest
 
-      - name: Install dependencies (Node.js)
-        if: matrix.runtime.type == 'node'
-        run: npm install
-
-      - name: Install dependencies (Bun)
-        if: matrix.runtime.type == 'bun'
+      - name: Install dependencies
         run: bun install
       
-      - name: Build package (Node.js)
-        if: matrix.runtime.type == 'node'
-        run: npm run build
-
-      - name: Build package (Bun)
-        if: matrix.runtime.type == 'bun'
+      - name: Build package
         run: bun run build
 
       - name: Wait for SurrealDB
@@ -81,17 +70,16 @@ jobs:
 
       - name: Run adapter tests (Node.js)
         if: matrix.runtime.type == 'node'
-        run: npm run test:adapter
+        run: npm run test:adapter 
 
       - name: Run adapter tests (Bun)
         if: matrix.runtime.type == 'bun'
-        run: bun run test:adapter
+        run: bun run test:adapter 
         
       - name: Run integration tests
         if: matrix.runtime.type == 'bun'
         working-directory: examples/sk
         run: |
-          # Teraz polecenia są wykonywane w poprawnym katalogu
           bun install
           bunx playwright install --with-deps
           bunx playwright test

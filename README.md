@@ -231,7 +231,7 @@ export const authClient = createAuthClient({
 
 ## 🔧 Advanced Configuration
 
-````typescript
+```typescript
 // lib/auth.ts
 import { betterAuth } from "better-auth";
 import { surrealdbAdapter } from "surreal-better-auth";
@@ -266,13 +266,14 @@ export const auth = betterAuth({
     // Add any better-auth plugins here and configure them as usual.
   ],
 });
-```---
+```
 
 ## 🧪 Development & Testing
 
 This monorepo includes comprehensive testing to ensure the adapter works reliably:
 
 ### Quick Commands
+
 ```bash
 # Install dependencies
 bun install
@@ -291,7 +292,7 @@ bun run test:all
 
 # Start example app
 bun run dev
-````
+```
 
 ## 📄 Adapter License
 

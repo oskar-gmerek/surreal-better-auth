@@ -89,10 +89,12 @@ jobs:
         
       - name: Run integration tests
         if: matrix.runtime.type == 'bun'
+        working-directory: examples/sk
         run: |
-          bun install --cwd examples/sk
-          bunx playwright install --with-deps --cwd examples/sk
-          bunx playwright test --cwd examples/sk
+          # Teraz polecenia są wykonywane w poprawnym katalogu
+          bun install
+          bunx playwright install --with-deps
+          bunx playwright test
         env:
           CI: true
           SURREALDB_URL: http://localhost:8000

@@ -24,6 +24,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: List artifacts from the triggering workflow
+        run: |
+          echo "Attempting to list artifacts from run ID: ${{ github.event.workflow_run.id }}"
+          gh run download ${{ github.event.workflow_run.id }} -n '*' --dir .
+          echo "Listing downloaded files:"
+          ls -R
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:

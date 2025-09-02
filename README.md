@@ -20,7 +20,7 @@ This adapter seamlessly integrates SurrealDB's advanced querying capabilities wi
 > [!NOTE]  
 >  🎁 **New to SurrealDB?** [Sign up with our referral link](https://app.surrealdb.com/referral?code=4pn5aba943lpbn8l) and get **free cloud hosting** plus a **special welcome discount** to kickstart your project!
 
----
+--- 
 
 ## ✨ Features
 

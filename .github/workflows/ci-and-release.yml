@@ -150,14 +150,19 @@ jobs:
             pkg.version = newVersion; fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n"); console.log(`Version bumped to ${newVersion}`);
             fs.appendFileSync(process.env.GITHUB_ENV, `NEW_VERSION=${newVersion}\n`);
           '
-          cp package.json dist/
+          node -e '
+            const fs = require("fs"); const path = "./dist/package.json";
+            const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
+            delete pkg.files;
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
+          '
           
           cd dist
           npm publish --tag beta
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Commit and push version bump (Beta)
+      - name: Commit, push, and tag (Beta)
         if: github.ref == 'refs/heads/beta'
         run: |
           git config --local user.email "action@github.com"
@@ -165,7 +170,10 @@ jobs:
           git pull
           git add packages/surreal-better-auth/package.json
           git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
-          git push
+
+          git tag ${{ env.NEW_VERSION }}
+
+          git push && git push --tags
 
       - name: Create GitHub Release (Beta)
         if: github.ref == 'refs/heads/beta'
@@ -190,7 +198,13 @@ jobs:
             fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n"); console.log(`Version bumped to ${stableVersion}`);
             fs.appendFileSync(process.env.GITHUB_ENV, `STABLE_VERSION=${stableVersion}\n`);
           '
-          cp package.json dist/
+          
+          node -e '
+            const fs = require("fs"); const path = "./dist/package.json";
+            const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
+            delete pkg.files;
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
+          '
           
           cd dist
           npm publish

@@ -1,0 +1,172 @@
+name: CI and Release
+
+on:
+  push:
+    branches: [ main, beta ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false 
+      matrix:
+        runtime:
+          - { name: "Node.js 20", type: "node", version: "20" }
+          - { name: "Node.js 22", type: "node", version: "22" }
+          - { name: "Node.js 24", type: "node", version: "24" }
+          - { name: "Bun latest", type: "bun", version: "latest" }
+            
+    name: Test on ${{ matrix.runtime.name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Start SurrealDB
+        uses: surrealdb/setup-surreal@v2
+        with: { surrealdb_version: latest, surrealdb_port: 8000, surrealdb_username: root, surrealdb_password: root, surrealdb_log: info, surrealdb_additional_args: --allow-all }
+      - name: Setup Node.js
+        if: matrix.runtime.type == 'node'
+        uses: actions/setup-node@v4
+        with: { node-version: ${{ matrix.runtime.version }} }
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+      - name: Install dependencies
+        run: bun install
+      - name: Build package
+        run: bun run build
+      - name: Wait for SurrealDB
+        run: |
+          echo "Waiting for SurrealDB..."
+          until curl --fail http://localhost:8000/status; do sleep 1; done
+          echo "SurrealDB is ready!"
+      - name: Run adapter tests (Node.js)
+        if: matrix.runtime.type == 'node'
+        run: npm run test:adapter
+      - name: Run adapter tests (Bun)
+        if: matrix.runtime.type == 'bun'
+        run: bun run test:adapter
+      - name: Run integration tests
+        if: matrix.runtime.type == 'bun'
+        working-directory: examples/sk
+        run: |
+          bun install
+          bunx playwright install --with-deps
+          bunx playwright test
+        env: { CI: true, SURREALDB_URL: http://localhost:8000, SURREALDB_USER: root, SURREALDB_PASS: root, SURREALDB_NS: test, SURREALDB_DB: example-sveltekit }
+      - name: Stop SurrealDB
+        if: always()
+        run: echo "Cleaning up..."
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    name: Build Artifact
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+      - name: Install dependencies
+        run: bun install
+      - name: Build package
+        run: bun run build
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-package
+          path: packages/surreal-better-auth/dist 
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Release to NPM
+
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: built-package
+          path: packages/surreal-better-auth/dist
+          
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+        
+      - name: Setup Node.js for npm
+        uses: actions/setup-node@v4
+        with: { node-version: '18', registry-url: 'https://registry.npmjs.org' }
+
+      # --- BETA ---
+      - name: Perform Beta Release
+        if: github.ref == 'refs/heads/beta'
+        run: |
+          cd packages/surreal-better-auth
+          CURRENT=$(node -p "require('./package.json').version")
+          if [[ $CURRENT == *"-beta."* ]]; then
+            NEW_VERSION=$(npm version prerelease --preid=beta --no-git-tag-version)
+          else
+            NEW_VERSION=$(npm version prerelease --preid=beta --no-git-tag-version)
+          fi
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          npm publish --tag beta
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit and push version bump (Beta)
+        if: github.ref == 'refs/heads/beta'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add packages/surreal-better-auth/package.json
+          git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
+          git push
+
+      - name: Create GitHub Release (Beta)
+        if: github.ref == 'refs/heads/beta'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.NEW_VERSION }}
+          name: Beta Release ${{ env.NEW_VERSION }}
+          prerelease: true
+          generate_release_notes: true
+
+      # --- STABLE ---
+      - name: Perform Stable Release
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd packages/surreal-better-auth
+          CURRENT=$(node -p "require('./package.json').version")
+          STABLE_VERSION=$(echo $CURRENT | sed 's/-beta\.[0-9]*//')
+          npm version $STABLE_VERSION --no-git-tag-version
+          echo "STABLE_VERSION=$STABLE_VERSION" >> $GITHUB_ENV
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit, tag and push (Stable)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add packages/surreal-better-auth/package.json
+          git commit -m "chore: release stable version ${{ env.STABLE_VERSION }} [skip ci]"
+          git tag v${{ env.STABLE_VERSION }}
+          git push
+          git push --tags
+
+      - name: Create GitHub Release (Stable)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.STABLE_VERSION }}
+          name: Release ${{ env.STABLE_VERSION }}
+          generate_release_notes: true

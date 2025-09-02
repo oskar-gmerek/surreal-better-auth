@@ -1,0 +1,68 @@
+{
+  "name": "surreal-better-auth",
+  "description": "SurrealDB adapter for Better Auth",
+  "version": "1.0.0-beta.0",
+  "author": {
+    "name": "Oskar Gmerek",
+    "url": "https://oskargmerek.com",
+    "email": "oskar.gmerek@neetrio.com",
+    "github": "https://github.com/oskar-gmerek"
+  },
+  "keywords": [
+    "adapter",
+    "auth",
+    "authentication",
+    "database",
+    "better-auth",
+    "better-auth-adapter",
+    "surreal-better-auth",
+    "surrealdb-better-auth",
+    "surrealdb",
+    "surrealdb-adapter",
+    "surrealdb-auth",
+    "javascript",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oskar-gmerek/surreal-better-auth.git"
+  },
+  "license": "MIT",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.2.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "bun run build && vitest run tests/",
+    "test:unit": "bun run build && vitest run tests/unit/",
+    "test:integration": "bun run build && vitest run tests/integration/",
+    "test:plugins": "vitest run tests/plugins/"
+  },
+  "peerDependencies": {
+    "better-auth": "^1.3.7",
+    "surrealdb": "^1.3.2"
+  },
+  "devDependencies": {
+    "@better-auth/cli": "1.3.7",
+    "@types/node": "24.3.0",
+    "tsup": "8.5.0",
+    "typescript": "5.9.2",
+    "vitest": "3.2.4"
+  },
+  "type": "module"
+}

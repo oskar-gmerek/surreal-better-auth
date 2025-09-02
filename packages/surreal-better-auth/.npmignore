@@ -1,0 +1,20 @@
+# Development files
+src/
+tests/
+tsup.config.ts
+*.test.ts
+*.spec.ts
+
+# Documentation (use README.md only)
+docs/
+examples/
+
+# Build artifacts
+node_modules/
+*.log
+.DS_Store
+
+# Backup files
+backups/
+*.backup
+*.bak

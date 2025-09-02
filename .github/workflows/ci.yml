@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, beta ]
+  pull_request:
+    branches: [ main, beta ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime:
+          - name: "Node.js 20"
+            type: "node"
+            version: "20"
+          - name: "Node.js 22"
+            type: "node"
+            version: "22"
+          - name: "Node.js 24"
+            type: "node"
+            version: "24"
+          - name: "Bun 1.2"
+            type: "bun"
+            version: "1.2"
+    
+    name: Test (${{ matrix.runtime.name }})
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SurrealDB
+        run: |
+          curl -sSf https://install.surrealdb.com | sh
+          surreal start --log trace --user root --pass root memory &
+          sleep 5
+
+      - name: Setup Node.js
+        if: matrix.runtime.type == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.runtime.version }}
+
+      - name: Setup Bun
+        if: matrix.runtime.type == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ matrix.runtime.version }}
+
+      - name: Install dependencies (Node.js)
+        if: matrix.runtime.type == 'node'
+        run: npm install
+
+      - name: Install dependencies (Bun)
+        if: matrix.runtime.type == 'bun'
+        run: bun install
+
+      - name: Run tests (Node.js)
+        if: matrix.runtime.type == 'node'
+        run: npm run test:adapter
+
+      - name: Run tests (Bun)
+        if: matrix.runtime.type == 'bun'
+        run: bun run test:adapter
+
+      - name: Build package (Node.js)
+        if: matrix.runtime.type == 'node'
+        run: npm run build
+
+      - name: Build package (Bun)
+        if: matrix.runtime.type == 'bun'
+        run: bun run build
+
+      - name: Check TypeScript (Node.js)
+        if: matrix.runtime.type == 'node'
+        working-directory: ./packages/surreal-better-auth
+        run: npx tsc --noEmit
+
+      - name: Check TypeScript (Bun)
+        if: matrix.runtime.type == 'bun'
+        working-directory: ./packages/surreal-better-auth
+        run: bunx tsc --noEmit
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Check formatting
+        run: bunx prettier --check "packages/**/*.{ts,js,json,md}"

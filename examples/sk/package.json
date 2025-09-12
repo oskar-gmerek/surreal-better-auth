@@ -37,7 +37,7 @@
     "@master/css.vite": "^2.0.0-rc.69",
     "better-auth": "^1.3.9",
     "bits-ui": "^2.9.1",
-    "surreal-better-auth": "1.0.0-beta.6",
+      "surreal-better-auth": "workspace:*",
     "surrealdb": "^1.3.2"
   }
 }

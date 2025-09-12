@@ -540,6 +540,7 @@ export function buildWhereClauseParts(
       connector = "AND",
     } = w;
     if (operator === "in" && Array.isArray(value) && value.length === 0) return;
+    if (operator === "not_in" && Array.isArray(value) && value.length === 0) return;
 
     const fieldName = getFieldName({ model, field: internalField });
 
@@ -551,7 +552,23 @@ export function buildWhereClauseParts(
     if (operator === "in") {
       conditionStr = `${fieldName} IN $${param}`;
       const vals = Array.isArray(value) ? value : [value];
-      let finalVals: any[] = vals;
+      let finalVals: (RecordId | string | number | boolean | Date | null)[] = vals;
+
+      if (internalField === "id") {
+        finalVals = vals.map((v) => toRecordId(tableName, v));
+      } else {
+        const referencedModelName = getReferencedModelFn(tableName, fieldName);
+        if (referencedModelName) {
+          finalVals = vals.map((v) =>
+            typeof v === "string" ? toRecordId(referencedModelName, v) : v,
+          );
+        }
+      }
+      fills.push(gap.fill(finalVals));
+    } else if (operator === "not_in") {
+      conditionStr = `${fieldName} NOT IN $${param}`;
+      const vals = Array.isArray(value) ? value : [value];
+      let finalVals: (RecordId | string | number | boolean | Date | null)[] = vals;
 
       if (internalField === "id") {
         finalVals = vals.map((v) => toRecordId(tableName, v));

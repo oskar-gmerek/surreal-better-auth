@@ -21,7 +21,7 @@
   "devDependencies": {
     "@playwright/test": "1.54.1",
     "@sveltejs/adapter-node": "5.2.13",
-    "@sveltejs/kit": "2.27.0",
+    "@sveltejs/kit": "2.49.5",
     "@sveltejs/vite-plugin-svelte": "6.1.0",
     "@types/bun": "^1.2.21",
     "@vitest/browser": "3.2.4",

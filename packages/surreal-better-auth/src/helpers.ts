@@ -540,7 +540,8 @@ export function buildWhereClauseParts(
       connector = "AND",
     } = w;
     if (operator === "in" && Array.isArray(value) && value.length === 0) return;
-    if (operator === "not_in" && Array.isArray(value) && value.length === 0) return;
+    if (operator === "not_in" && Array.isArray(value) && value.length === 0)
+      return;
 
     const fieldName = getFieldName({ model, field: internalField });
 
@@ -552,7 +553,8 @@ export function buildWhereClauseParts(
     if (operator === "in") {
       conditionStr = `${fieldName} IN $${param}`;
       const vals = Array.isArray(value) ? value : [value];
-      let finalVals: (RecordId | string | number | boolean | Date | null)[] = vals;
+      let finalVals: (RecordId | string | number | boolean | Date | null)[] =
+        vals;
 
       if (internalField === "id") {
         finalVals = vals.map((v) => toRecordId(tableName, v));
@@ -568,7 +570,8 @@ export function buildWhereClauseParts(
     } else if (operator === "not_in") {
       conditionStr = `${fieldName} NOT IN $${param}`;
       const vals = Array.isArray(value) ? value : [value];
-      let finalVals: (RecordId | string | number | boolean | Date | null)[] = vals;
+      let finalVals: (RecordId | string | number | boolean | Date | null)[] =
+        vals;
 
       if (internalField === "id") {
         finalVals = vals.map((v) => toRecordId(tableName, v));
@@ -650,7 +653,7 @@ export function generateCreateQuery(
         targetClause = `type::thing('${tableName}', rand::uuid::v7())`;
         break;
       case "surreal.guid":
-        targetClause = `type::thing('${tableName}', rand::guid())`;
+        targetClause = `type::thing('${tableName}', rand::id())`;
         break;
       default: // Includes `sdk.*` and undefined
         targetClause = `type::table('${tableName}')`;

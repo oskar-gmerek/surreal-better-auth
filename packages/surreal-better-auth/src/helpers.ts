@@ -641,19 +641,19 @@ export function generateCreateQuery(
   } else {
     switch (config?.idGenerator) {
       case "surreal.ULID":
-        targetClause = `type::thing('${tableName}', rand::ulid())`;
+        targetClause = `type::record('${tableName}', rand::ulid())`;
         break;
       case "surreal.UUID":
-        targetClause = `type::thing('${tableName}', rand::uuid())`;
+        targetClause = `type::record('${tableName}', rand::uuid())`;
         break;
       case "surreal.UUIDv4":
-        targetClause = `type::thing('${tableName}', rand::uuid::v4())`;
+        targetClause = `type::record('${tableName}', rand::uuid::v4())`;
         break;
       case "surreal.UUIDv7":
-        targetClause = `type::thing('${tableName}', rand::uuid::v7())`;
+        targetClause = `type::record('${tableName}', rand::uuid::v7())`;
         break;
       case "surreal.guid":
-        targetClause = `type::thing('${tableName}', rand::id())`;
+        targetClause = `type::record('${tableName}', rand::id())`;
         break;
       default: // Includes `sdk.*` and undefined
         targetClause = `type::table('${tableName}')`;

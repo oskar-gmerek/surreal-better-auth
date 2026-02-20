@@ -1,4 +1,4 @@
-import type { AdapterDebugLogs } from "better-auth/adapters";
+import type { DBAdapterDebugLogOption } from "better-auth/adapters";
 
 /**
  * ID generation strategies for SurrealDB records.
@@ -25,7 +25,7 @@ export interface RecordIdMap {
  */
 export interface SurrealDBAdapterConfig {
   /** Enable debug logging for adapter operations. */
-  debugLogs?: AdapterDebugLogs;
+  debugLogs?: DBAdapterDebugLogOption;
 
   /** Use plural table names (e.g., 'users' instead of 'user'). @default false */
   usePlural?: boolean;

@@ -2,7 +2,7 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: ["src/index.ts"],
-  format: ["esm", "cjs"],
+  format: ["esm"],
   dts: true,
   minify: true,
   treeshake: true,
@@ -12,12 +12,4 @@ export default defineConfig({
   platform: "node",
   target: "node20",
   external: ["better-auth", "surrealdb"],
-  esbuildOptions(options) {
-    options.conditions = ["module", "import", "default"];
-  },
-  outExtension({ format }) {
-    return {
-      js: format === "cjs" ? ".cjs" : ".js",
-    };
-  },
 });

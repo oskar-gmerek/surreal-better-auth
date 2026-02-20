@@ -1,7 +1,7 @@
 {
   "name": "surreal-better-auth",
   "description": "SurrealDB adapter for Better Auth",
-  "version": "2.0.0-beta.1",
+  "version": "2.0.0-beta.0",
   "author": {
     "name": "Oskar Gmerek",
     "url": "https://oskargmerek.com",
@@ -28,14 +28,14 @@
     "url": "https://github.com/oskar-gmerek/surreal-better-auth.git"
   },
   "license": "MIT",
-  "main": "./dist/index.cjs",
+  "type": "module",
+  "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.js"
     }
   },
   "files": [
@@ -63,6 +63,5 @@
     "tsup": "8.5.1",
     "typescript": "5.9.3",
     "vitest": "4.0.18"
-  },
-  "type": "module"
+  }
 }

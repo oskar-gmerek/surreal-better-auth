@@ -26,7 +26,7 @@
     "@types/bun": "^1.2.21",
     "@vitest/browser": "3.2.4",
     "playwright": "1.54.1",
-    "svelte": "5.37.2",
+    "svelte": "5.51.5",
     "svelte-check": "4.3.0",
     "typescript": "5.9.2",
     "vite": "7.0.6",

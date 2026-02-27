@@ -1,7 +1,7 @@
 import { describe, beforeAll, afterAll, test, expect } from "vitest";
 import { Surreal, RecordId, StringRecordId, surql, DateTime } from "surrealdb";
 import { surrealdbAdapter } from "../packages/surreal-better-auth/dist/index.mjs";
-
+import { WebSocket as NodeWebSocket } from "ws";
 /**
  * Integration tests for SurrealDB adapter edge cases.
  * These tests verify SurrealDB-specific behaviors like native RecordId conversion,
@@ -9,7 +9,7 @@ import { surrealdbAdapter } from "../packages/surreal-better-auth/dist/index.mjs
  */
 describe("SurrealDB Adapter - Edge Cases", async () => {
   const db = new Surreal({
-    websocketImpl: globalThis.WebSocket,
+    websocketImpl: (globalThis.WebSocket || NodeWebSocket) as any,
   });
 
   beforeAll(async () => {

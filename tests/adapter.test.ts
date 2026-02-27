@@ -3,7 +3,7 @@ import { Surreal } from "surrealdb";
 import { runAdapterTest } from "better-auth/adapters/test";
 import { surrealdbAdapter } from "../packages/surreal-better-auth/dist/index.mjs";
 import { surql } from "surrealdb";
-
+import { WebSocket as NodeWebSocket } from "ws";
 /**
  * Main test suite for the SurrealDB Better-Auth adapter.
  * This suite executes the standard Better-Auth adapter test suite to ensure
@@ -11,7 +11,7 @@ import { surql } from "surrealdb";
  */
 describe("SurrealDB adapter test", async () => {
   const db = new Surreal({
-    websocketImpl: globalThis.WebSocket,
+    websocketImpl: (globalThis.WebSocket || NodeWebSocket) as any,
   });
 
   beforeAll(async () => {

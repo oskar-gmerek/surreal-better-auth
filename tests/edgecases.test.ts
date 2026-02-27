@@ -8,7 +8,9 @@ import { surrealdbAdapter } from "../packages/surreal-better-auth/dist/index.mjs
  * polymorphic field handling, and transaction rollbacks.
  */
 describe("SurrealDB Adapter - Edge Cases", async () => {
-  const db = new Surreal();
+  const db = new Surreal({
+    websocketImpl: globalThis.WebSocket,
+  });
 
   beforeAll(async () => {
     await db.connect("ws://127.0.0.1:8000/rpc");

@@ -10,7 +10,9 @@ import { surql } from "surrealdb";
  * compliance with the framework's internal requirements.
  */
 describe("SurrealDB adapter test", async () => {
-  const db = new Surreal();
+  const db = new Surreal({
+    websocketImpl: globalThis.WebSocket,
+  });
 
   beforeAll(async () => {
     // Establish connection to the local SurrealDB instance

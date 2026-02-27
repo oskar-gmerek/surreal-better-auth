@@ -1,6 +1,5 @@
 {
   "name": "surreal-better-auth",
-  "description": "SurrealDB adapter for Better Auth",
   "version": "2.0.0-beta.0",
   "author": {
     "name": "Oskar Gmerek",
@@ -8,6 +7,31 @@
     "email": "oskar.gmerek@neetrio.com",
     "github": "https://github.com/oskar-gmerek"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oskar-gmerek/surreal-better-auth.git"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+
+  "peerDependencies": {
+    "better-auth": "^1.4.19",
+    "surrealdb": "^2.0.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "description": "SurrealDB adapter for Better Auth",
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.3.10"
+  },
+  "files": [
+    "dist"
+  ],
   "keywords": [
     "adapter",
     "auth",
@@ -23,45 +47,16 @@
     "javascript",
     "typescript"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/oskar-gmerek/surreal-better-auth.git"
-  },
   "license": "MIT",
-  "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "engines": {
-    "node": ">=20.0.0",
-    "bun": ">=1.3.9"
-  },
   "scripts": {
     "build": "tsdown",
-    "dev": "tsdown --watch",
+    "build:watch": "tsdown --watch",
     "test": "bun run build && vitest run tests/",
     "test:unit": "bun run build && vitest run tests/unit/",
     "test:integration": "bun run build && vitest run tests/integration/",
-    "test:plugins": "vitest run tests/plugins/"
+    "test:plugins": "vitest run tests/plugins/",
+    "postinstall": "node src/welcome.js"
   },
-  "peerDependencies": {
-    "better-auth": "^1.4.18",
-    "surrealdb": "^2.0.0-beta.1"
-  },
-  "devDependencies": {
-    "@better-auth/cli": "^1.4.18",
-    "@types/node": "24.3.0",
-    "tsup": "8.5.1",
-    "typescript": "5.9.3",
-    "vitest": "4.0.18"
-  }
+  "type": "module",
+  "types": "./dist/index.d.ts"
 }

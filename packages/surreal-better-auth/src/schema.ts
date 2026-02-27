@@ -8,11 +8,8 @@ import type { GenerateSchemaParams, GenerateSchemaResult } from "./types";
 /**
  * Generates SurrealDB schema from Better Auth table definitions with proper field types and indexes.
  */
-export function generateSchema(
-  params: GenerateSchemaParams,
-): GenerateSchemaResult {
-  const { file, tables, getModelName, getFieldName, getReferencedModel } =
-    params;
+export function generateSchema(params: GenerateSchemaParams): GenerateSchemaResult {
+  const { file, tables, getModelName, getFieldName, getReferencedModel } = params;
 
   const schemaLines: string[] = [];
   const date = new Date();
@@ -33,8 +30,8 @@ export function generateSchema(
     "-- ║           after each generation to ensure it fully meets your          ║",
     `-- ║           project's specific requirements.                             ║`,
     "-- ╟────────────────────────────────────────────────────────────────────────╢",
-    "-- ║  Tip: The easiest way to apply this schema to your db is to copy its   ║",
-    "-- ║       contents and paste them directly into the Surrealist.            ║",
+    "-- ║  Tip: The easiest way to apply this schema to your database is to use  ║",
+    "-- ║       import function in the Surrealist or via SurrealDB CLI.          ║",
     "-- ╚════════════════════════════════════════════════════════════════════════╝",
     "",
     "",
@@ -56,11 +53,7 @@ export function generateSchema(
   /**
    * Maps Better Auth field types to SurrealDB types with special cases for references.
    */
-  function mapFieldType(
-    tableName: string,
-    fieldName: string,
-    type?: string,
-  ): string {
+  function mapFieldType(tableName: string, fieldName: string, type?: string): string {
     // Special cases for field-to-table mappings in schema generation
     try {
       const accountModelName = getModelName("account");
@@ -73,6 +66,7 @@ export function generateSchema(
       if (tableName === accountModelName && fieldName === accountIdFieldName) {
         return `record<${userModelName}> | string`;
       }
+      // oxlint-disable-next-line
     } catch (e) {
       // account or user model not in schema, skip
     }
@@ -85,12 +79,10 @@ export function generateSchema(
         field: "clientId",
       });
 
-      if (
-        tableName === oauthAccessTokenModelName &&
-        fieldName === oauthAccessTokenIdFieldName
-      ) {
+      if (tableName === oauthAccessTokenModelName && fieldName === oauthAccessTokenIdFieldName) {
         return `record<${oauthApplicationModelName}>`;
       }
+      // oxlint-disable-next-line
     } catch (e) {
       // oauthAccessToken or oauthApplication model not in schema, skip
     }
@@ -103,12 +95,10 @@ export function generateSchema(
         field: "clientId",
       });
 
-      if (
-        tableName === oauthConsentModelName &&
-        fieldName === oauthConsentIdFieldName
-      ) {
+      if (tableName === oauthConsentModelName && fieldName === oauthConsentIdFieldName) {
         return `record<${oauthApplicationModelName}>`;
       }
+      // oxlint-disable-next-line
     } catch (e) {
       // oauthConsent or oauthApplication model not in schema, skip
     }
@@ -134,25 +124,16 @@ export function generateSchema(
     schemaLines.push(...buildTableBox(`TABLE: ${tableName}`));
     schemaLines.push(`DEFINE TABLE OVERWRITE ${tableName} SCHEMAFULL;`);
     schemaLines.push("");
-    schemaLines.push(
-      `DEFINE FIELD OVERWRITE id ON TABLE ${tableName} TYPE record<${tableName}>;`,
-    );
+    schemaLines.push(`DEFINE FIELD OVERWRITE id ON TABLE ${tableName} TYPE record<${tableName}>;`);
 
     // Generate field definitions
-    for (const [internalFieldName, field] of Object.entries(
-      (tableDef as any).fields,
-    )) {
+    for (const [internalFieldName, field] of Object.entries((tableDef as any).fields)) {
       const fieldName = getFieldName({
         model: internalModelName,
         field: internalFieldName,
       });
-      const baseType = mapFieldType(
-        tableName,
-        fieldName,
-        (field as any).type?.toString(),
-      );
-      const finalType =
-        (field as any).required === false ? `option<${baseType}>` : baseType;
+      const baseType = mapFieldType(tableName, fieldName, (field as any).type?.toString());
+      const finalType = (field as any).required === false ? `option<${baseType}>` : baseType;
       schemaLines.push(
         `DEFINE FIELD OVERWRITE ${fieldName} ON TABLE ${tableName} TYPE ${finalType};`,
       );
@@ -164,9 +145,7 @@ export function generateSchema(
     );
 
     // Generate indexes for specific fields
-    for (const [internalFieldName, field] of Object.entries(
-      (tableDef as any).fields,
-    )) {
+    for (const [internalFieldName, field] of Object.entries((tableDef as any).fields)) {
       const fieldName = getFieldName({
         model: internalModelName,
         field: internalFieldName,
@@ -187,8 +166,7 @@ export function generateSchema(
       const fieldsToIndex = indexedFields[internalModelName];
       const shouldIndex =
         fieldsToIndex &&
-        ((Array.isArray(fieldsToIndex) &&
-          fieldsToIndex.includes(internalFieldName)) ||
+        ((Array.isArray(fieldsToIndex) && fieldsToIndex.includes(internalFieldName)) ||
           fieldsToIndex === internalFieldName);
 
       if (shouldIndex) {

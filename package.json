@@ -1,29 +1,33 @@
 {
     "name": "surreal-better-auth-monorepo",
     "devDependencies": {
-        "@better-auth/cli": "^1.4.18",
+        "@better-auth/cli": "^1.4.19",
+        "@types/bun": "^1.3.9",
+        "better-auth": "^1.4.19",
+        "bun": "^1.3.10",
         "glob": "^13.0.6",
-        "tsup": "^8.5.1",
+        "oxfmt": "^0.35.0",
+        "oxlint": "^1.50.0",
+        "surrealdb": "^2.0.0",
+        "tsdown": "^0.20.3",
         "typescript": "^5.9.3",
+        "util": "^0.12.5",
         "vitest": "^4.0.18"
     },
     "private": true,
     "scripts": {
         "build": "bun run --filter=surreal-better-auth build",
+        "build:watch": "bun run --filter=surreal-better-auth build:watch",
         "dev": "bun run --port 3000 --filter=sk --elide-lines=0 dev",
-        "test:adapter": "vitest run packages/surreal-better-auth/tests/",
+        "test:adapter": "vitest run tests/",
         "test:integration": "cd examples/sk && bunx playwright test",
         "test:all": "bun run test:adapter && bun run test:integration",
         "release:check": "cd packages/surreal-better-auth && npm pack --dry-run",
         "release:version": "cd packages/surreal-better-auth && node -p \"require('./package.json').version\"",
         "release:status": "node scripts/check-release.js",
+        "restart": "rm -rfv bun.lock node_modules && find . -name 'node_modules' -type d -exec rm -rfv {} + && find . -name '.svelte-kit' -type d -exec rm -rfv {} +",
         "setup": "bun install && echo '✅ Setup complete! Run: bun run release:status'",
-        "create:schema": "cd examples/sk &&  bun run create:schema",
-        "biome:check": "bunx --bun biome format .",
-        "biome:format": "bunx --bun biome format --write .",
-        "biome:lint": "bunx --bun biome lint .",
-        "biome:fix": "bunx --bun biome lint --write .",
-        "biome:unsafefix": "bunx --bun biome lint --write --unsafe ."
+        "create:schema": "bun x @better-auth/cli@latest generate --config ./packages/surreal-better-auth/_auth.ts"
     },
     "type": "module",
     "workspaces": [

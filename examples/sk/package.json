@@ -35,9 +35,9 @@
   },
   "dependencies": {
     "@master/css.vite": "^2.0.0-rc.69",
-    "better-auth": "^1.3.9",
+    "better-auth": "^1.4.19",
     "bits-ui": "^2.9.1",
     "surreal-better-auth": "workspace:*",
-    "surrealdb": "^2.0.0-beta.1"
+    "surrealdb": "2.0.0"
   }
 }

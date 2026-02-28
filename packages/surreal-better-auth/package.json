@@ -51,9 +51,7 @@
   "scripts": {
     "build": "tsdown",
     "build:watch": "tsdown --watch",
-    "test": "bun run build && vitest run tests/",
-    "test:unit": "bun run build && vitest run tests/unit/",
-    "test:integration": "bun run build && vitest run tests/integration/",
+    "test": "vitest run tests/ --fileParallelism=false",
     "test:plugins": "vitest run tests/plugins/",
     "postinstall": "node welcome.js"
   },

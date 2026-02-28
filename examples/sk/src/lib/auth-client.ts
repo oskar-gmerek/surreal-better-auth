@@ -17,13 +17,10 @@ export const authClient = createAuthClient({
     organizationClient({
       schema: {
         organization: {
-          additionalFields:
-            inferOrgAdditionalFields<typeof auth>().organization
-              ?.additionalFields,
+          additionalFields: inferOrgAdditionalFields<typeof auth>().organization?.additionalFields,
         },
         team: {
-          additionalFields:
-            inferOrgAdditionalFields<typeof auth>().team?.additionalFields,
+          additionalFields: inferOrgAdditionalFields<typeof auth>().team?.additionalFields,
         },
       },
       teams: {

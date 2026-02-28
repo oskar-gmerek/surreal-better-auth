@@ -7,10 +7,9 @@ import { WebSocket as NodeWebSocket } from "ws";
 const db = new Surreal({
   websocketImpl: (globalThis.WebSocket || NodeWebSocket) as any,
 });
-await db.connect("ws://127.0.0.1:8000/rpc");
+await db.connect("http://127.0.0.1:8000/rpc");
 await db.signin({ username: "root", password: "root" });
 await db.use({ namespace: "test", database: "example-sveltekit" });
-
 export const auth = betterAuth({
   plugins: [
     username(),

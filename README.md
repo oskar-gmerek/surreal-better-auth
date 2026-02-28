@@ -79,6 +79,7 @@ import { surrealdbAdapter } from "surreal-better-auth";
 import { db } from "./db"; // Your SurrealDB client instance
 
 export const auth = betterAuth({
+  // Whenever possible, always prefer ws over http for surrealdb instances.
   database: surrealdbAdapter(db, {
     // ID strategy: "ULID", "UUIDv4", "UUIDv7", or "guid"
     idGenerator: "guid", 

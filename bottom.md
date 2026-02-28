@@ -26,13 +26,13 @@ bun run test:all
 bun run dev
 ```
 
-## 📄 Adapter License
+## <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/rules.png?raw=true" /> Adapter License
 
 `surreal-better-auth` package - MIT License - see [LICENSE](./packages/surreal-better-auth/LICENSE) for details.
 
 ---
 
-## 🔗 Links
+## <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/external.png?raw=true" /> Links
 
 - 📖 [better-auth Documentation](https://www.better-auth.com/docs/installation)
 - 🗄️ [SurrealDB Documentation](https://surrealdb.com/docs/surrealdb)
@@ -44,8 +44,6 @@ bun run dev
 
 <div align="center">
 
-**Made with ❤️ for the SurrealDB and Better Auth communities**
-
-[⭐ Star this project](https://github.com/oskar-gmerek/surreal-better-auth) • [🐛 Report Issues](https://github.com/oskar-gmerek/surreal-better-auth/issues) • [💡 Request Features](https://github.com/oskar-gmerek/surreal-better-auth/issues/new)
+**Made with <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/heart.png?raw=true" /> for the SurrealDB and Better Auth communities**
 
 </div>

@@ -17,6 +17,7 @@ jobs:
                     - { name: "Node.js 22", type: "node", version: "22" }
                     - { name: "Node.js 24", type: "node", version: "24" }
                     - { name: "Bun latest", type: "bun", version: "latest" }
+                    - { name: "Deno latest", type: "deno", version: "latest" }
 
         name: Test on ${{ matrix.runtime.name }}
         steps:
@@ -51,33 +52,42 @@ jobs:
                   echo "SurrealDB is ready!"
             - name: Run adapter tests (Node.js)
               if: matrix.runtime.type == 'node'
-              run: npm run test:adapter
+              run: npm run test:adapter -- --fileParallelism=false
             - name: Run adapter tests (Bun)
               if: matrix.runtime.type == 'bun'
               run: bun run test:adapter
-              # - name: Install example dependencies
-              #   if: matrix.runtime.type == 'bun'
-              #   working-directory: examples/sk
-              #   run: bun install
-              # - name: Cache Playwright Browsers
-              #   if: matrix.runtime.type == 'bun'
-              #   id: cache-playwright
-              #   uses: actions/cache@v4
-              #   with:
-              #     path: ~/.cache/ms-playwright
-              #     key: ${{ runner.os }}-playwright-${{ hashFiles('**/bun.lockb') }}
-              #     restore-keys: |
-              #       ${{ runner.os }}-playwright-
-              # - name: Install Playwright Browsers
-              #   if: matrix.runtime.type == 'bun' && steps.cache-playwright.outputs.cache-hit != 'true'
-              #   working-directory: examples/sk
-              #   run: bunx playwright install --with-deps
-              # - name: Run integration tests
-              #   if: matrix.runtime.type == 'bun'
-              #   working-directory: examples/sk
-              #   run: bunx playwright test
+            - name: Run adapter tests (Deno)
+              if: matrix.runtime.type == 'deno'
+              run: deno run -A npm:vitest run tests/ --fileParallelism=false
+            - name: Install example dependencies
+              if: matrix.runtime.type == 'bun'
+              working-directory: examples/sk
+              run: bun install
+            - name: Cache Playwright Browsers
+              if: matrix.runtime.type == 'bun'
+              id: cache-playwright
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: ${{ runner.os }}-playwright-${{ hashFiles('**/bun.lockb') }}
+                  restore-keys: |
+                      ${{ runner.os }}-playwright-
+            - name: Install Playwright Browsers & Deps
+              if: matrix.runtime.type == 'bun' && steps.cache-playwright.outputs.cache-hit != 'true'
+              working-directory: examples/sk
+              run: bunx playwright install --with-deps chromium
+            - name: Install Playwright System Deps Only
+              if: matrix.runtime.type == 'bun' && steps.cache-playwright.outputs.cache-hit == 'true'
+              working-directory: examples/sk
+              run: bunx playwright install-deps chromium
+            - name: Run integration tests
+              if: matrix.runtime.type == 'bun'
+              working-directory: examples/sk
+              run: bunx playwright test
               env:
                   CI: true
+                  BETTER_AUTH_SECRET: a_very_long_static_test_secret_32_chars
+                  BETTER_AUTH_URL: http://localhost:3000
                   SURREALDB_URL: http://localhost:8000
                   SURREALDB_USER: root
                   SURREALDB_PASS: root
@@ -122,31 +132,38 @@ jobs:
               with:
                   token: ${{ secrets.RELEASE_PAT }}
                   fetch-depth: 0
+
             - name: Download build artifact
               uses: actions/download-artifact@v4
               with:
                   name: built-package
                   path: packages/surreal-better-auth/dist
-            - name: Setup Bun
-              uses: oven-sh/setup-bun@v2
-              with:
-                  bun-version: latest
-            - name: Setup Node.js for publishing
+
+            - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
                   node-version: "24"
 
-            # --- BETA ---
-            - name: Perform Beta Release
-              if: github.ref == 'refs/heads/beta'
+            - name: Check if version is new
+              id: check-version
+              run: |
+                  PACKAGE_NAME=$(node -p "require('./packages/surreal-better-auth/package.json').name")
+                  CURRENT_VERSION=$(node -p "require('./packages/surreal-better-auth/package.json').version")
+                  PUBLISHED_VERSION=$(npm view $PACKAGE_NAME version 2>/dev/null || echo "0.0.0")
+
+                  if [ "$CURRENT_VERSION" = "$PUBLISHED_VERSION" ]; then
+                    echo "Version $CURRENT_VERSION already exists on NPM. Skipping publish."
+                    echo "should_publish=false" >> $GITHUB_OUTPUT
+                  else
+                    echo "Version $CURRENT_VERSION is new. Proceeding."
+                    echo "should_publish=true" >> $GITHUB_OUTPUT
+                    echo "VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+                  fi
+
+            - name: Prepare Release Metadata
+              if: steps.check-version.outputs.should_publish == 'true'
               run: |
                   cd packages/surreal-better-auth
-                  node -e '
-                    const fs = require("fs"); const path = "./package.json"; const pkg = JSON.parse(fs.readFileSync(path, "utf8")); let current = pkg.version; let newVersion;
-                    if (current.includes("-beta.")) { let [main, beta] = current.split("-beta."); newVersion = `${main}-beta.${parseInt(beta) + 1}`; } else { newVersion = `${current}-beta.0`; }
-                    pkg.version = newVersion; fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
-                    fs.appendFileSync(process.env.GITHUB_ENV, `NEW_VERSION=${newVersion}\n`);
-                  '
                   cp README.md dist/
                   cp LICENSE dist/
                   cp welcome.js dist/
@@ -174,93 +191,30 @@ jobs:
                     const merged = bottom.replace(/## <!-- include: packages\/surreal-better-auth\/README\.md -->/, pkgReadme);
                     fs.writeFileSync("README.md", merged);
                   '
-                  cd packages/surreal-better-auth/dist
-                  npm publish --tag beta --provenance --access public
 
-            - name: Commit, push, and tag (Beta)
-              if: github.ref == 'refs/heads/beta'
+            - name: Publish to NPM
+              if: steps.check-version.outputs.should_publish == 'true'
               run: |
-                  git config --local user.email "action@github.com"
-                  git config --local user.name "GitHub Action"
-                  git add packages/surreal-better-auth/package.json README.md
-                  git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
-                  git pull --rebase origin beta
-                  git tag ${{ env.NEW_VERSION }}
-                  git push origin beta --tags
-
-            - name: Create GitHub Release (Beta)
-              if: github.ref == 'refs/heads/beta'
-              uses: softprops/action-gh-release@v2
-              with:
-                  tag_name: ${{ env.NEW_VERSION }}
-                  name: Beta Release ${{ env.NEW_VERSION }}
-                  prerelease: true
-                  generate_release_notes: true
-
-            # --- STABLE ---
-            - name: Perform Stable Release
-              if: github.ref == 'refs/heads/main'
-              run: |
-                  cd packages/surreal-better-auth
-                  node -e '
-                    const fs = require("fs"); const path = "./package.json"; const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
-                    let stableVersion = pkg.version.split("-beta.")[0]; pkg.version = stableVersion;
-                    fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
-                    fs.appendFileSync(process.env.GITHUB_ENV, `STABLE_VERSION=${stableVersion}\n`);
-                  '
-                  cp README.md dist/
-                  cp LICENSE dist/
-                  cp welcome.js dist/
-                  node -e '
-                    const fs = require("fs");
-                    const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
-                    const pi = pkg.scripts.postinstall;
-                    delete pkg.files; delete pkg.scripts; delete pkg.devDependencies;
-                    pkg.scripts = pi ? { postinstall: pi } : {};
-                    const f = (o, k) => { if (o && o[k] && typeof o[k] === "string") o[k] = o[k].replace("./dist/", "./"); };
-                    f(pkg, "main"); f(pkg, "module"); f(pkg, "types");
-                    if (pkg.exports) {
-                      for (const k in pkg.exports) {
-                        if (typeof pkg.exports[k] === "string") pkg.exports[k] = pkg.exports[k].replace("./dist/", "./");
-                        else { f(pkg.exports[k], "types"); f(pkg.exports[k], "import"); f(pkg.exports[k], "require"); f(pkg.exports[k], "default"); }
-                      }
-                    }
-                    fs.writeFileSync("./dist/package.json", JSON.stringify(pkg, null, 2) + "\n");
-                  '
-                  cd ../..
-                  node -e '
-                    const fs = require("fs");
-                    const pkgReadme = fs.readFileSync("packages/surreal-better-auth/README.md", "utf8");
-                    const bottom = fs.readFileSync("bottom.md", "utf8");
-                    const merged = bottom.replace(/## <!-- include: packages\/surreal-better-auth\/README\.md -->/, pkgReadme);
-                    fs.writeFileSync("README.md", merged);
-                  '
                   cd packages/surreal-better-auth/dist
-                  npm publish --provenance --access public
+                  TAG_ARG=""
+                  if [[ "${{ env.VERSION }}" == *"-beta."* ]]; then TAG_ARG="--tag beta"; fi
+                  npm publish $TAG_ARG --provenance --access public
 
-            - name: Commit, tag and push (Stable)
-              if: github.ref == 'refs/heads/main'
+            - name: Sync README back to Repo
+              if: steps.check-version.outputs.should_publish == 'true'
               run: |
                   git config --local user.email "53402105+oskar-gmerek@users.noreply.github.com"
                   git config --local user.name "Oskar Gmerek"
-                  git add packages/surreal-better-auth/package.json README.md
-                  git commit -m "chore: release stable version ${{ env.STABLE_VERSION }} [skip ci]"
-                  git pull --rebase origin main
-                  git tag v${{ env.STABLE_VERSION }}
-                  git push origin main --tags
+                  git add README.md
+                  git commit -m "docs: sync monorepo README for v${{ env.VERSION }} [skip ci]"
+                  git pull --rebase origin ${{ github.ref_name }}
+                  git push origin ${{ github.ref_name }}
 
-            - name: Create GitHub Release (Stable)
-              if: github.ref == 'refs/heads/main'
+            - name: Create GitHub Release
+              if: steps.check-version.outputs.should_publish == 'true'
               uses: softprops/action-gh-release@v2
               with:
-                  tag_name: v${{ env.STABLE_VERSION }}
-                  name: Release ${{ env.STABLE_VERSION }}
-                  generate_release_notes: true
-
-            - name: Create GitHub Release (Stable)
-              if: github.ref == 'refs/heads/main'
-              uses: softprops/action-gh-release@v2
-              with:
-                  tag_name: v${{ env.STABLE_VERSION }}
-                  name: Release ${{ env.STABLE_VERSION }}
+                  tag_name: v${{ env.VERSION }}
+                  name: Release v${{ env.VERSION }}
+                  prerelease: ${{ contains(env.VERSION, '-beta.') }}
                   generate_release_notes: true

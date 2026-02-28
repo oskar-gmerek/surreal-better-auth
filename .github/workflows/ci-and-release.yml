@@ -154,7 +154,7 @@ jobs:
                     const fs = require("fs");
                     const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
                     const pi = pkg.scripts.postinstall;
-                    delete pkg.files; delete pkg.devDependencies;
+                    delete pkg.files; delete pkg.scripts; delete pkg.devDependencies;
                     pkg.scripts = pi ? { postinstall: pi } : {};
                     const f = (o, k) => { if (o && o[k] && typeof o[k] === "string") o[k] = o[k].replace("./dist/", "./"); };
                     f(pkg, "main"); f(pkg, "module"); f(pkg, "types");
@@ -182,12 +182,11 @@ jobs:
               run: |
                   git config --local user.email "action@github.com"
                   git config --local user.name "GitHub Action"
-                  git pull
-                  git add packages/surreal-better-auth/package.json
-                  git add README.md
+                  git add packages/surreal-better-auth/package.json README.md
                   git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
+                  git pull --rebase origin beta
                   git tag ${{ env.NEW_VERSION }}
-                  git push && git push --tags
+                  git push origin beta --tags
 
             - name: Create GitHub Release (Beta)
               if: github.ref == 'refs/heads/beta'
@@ -216,7 +215,7 @@ jobs:
                     const fs = require("fs");
                     const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
                     const pi = pkg.scripts.postinstall;
-                    delete pkg.files; delete pkg.devDependencies;
+                    delete pkg.files; delete pkg.scripts; delete pkg.devDependencies;
                     pkg.scripts = pi ? { postinstall: pi } : {};
                     const f = (o, k) => { if (o && o[k] && typeof o[k] === "string") o[k] = o[k].replace("./dist/", "./"); };
                     f(pkg, "main"); f(pkg, "module"); f(pkg, "types");
@@ -244,13 +243,19 @@ jobs:
               run: |
                   git config --local user.email "53402105+oskar-gmerek@users.noreply.github.com"
                   git config --local user.name "Oskar Gmerek"
-                  git pull
-                  git add packages/surreal-better-auth/package.json
-                  git add README.md
+                  git add packages/surreal-better-auth/package.json README.md
                   git commit -m "chore: release stable version ${{ env.STABLE_VERSION }} [skip ci]"
+                  git pull --rebase origin main
                   git tag v${{ env.STABLE_VERSION }}
-                  git push
-                  git push --tags
+                  git push origin main --tags
+
+            - name: Create GitHub Release (Stable)
+              if: github.ref == 'refs/heads/main'
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: v${{ env.STABLE_VERSION }}
+                  name: Release ${{ env.STABLE_VERSION }}
+                  generate_release_notes: true
 
             - name: Create GitHub Release (Stable)
               if: github.ref == 'refs/heads/main'

@@ -1,6 +1,6 @@
 ## <!-- include: packages/surreal-better-auth/README.md -->
 
-## 🧪 Development & Testing
+## <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/pullrequest.png?raw=true" /> Development & Testing
 
 This monorepo includes comprehensive testing to ensure the adapter works reliably:
 

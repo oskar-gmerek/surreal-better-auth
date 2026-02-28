@@ -1,6 +1,6 @@
 {
   "name": "surreal-better-auth",
-  "version": "2.0.0-beta.2",
+  "version": "2.0.0-beta.3",
   "author": {
     "name": "Oskar Gmerek",
     "url": "https://oskargmerek.com",
@@ -13,7 +13,6 @@
   },
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
-
   "peerDependencies": {
     "better-auth": "^1.4.20",
     "surrealdb": "^2.0.0"

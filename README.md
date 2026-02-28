@@ -129,6 +129,7 @@ If this adapter helps your project, please consider:
 - ⭐ **Starring the project** on [GitHub](https://github.com/oskar-gmerek/surreal-better-auth)
 - 💖 **[Sponsoring the development](https://github.com/sponsors/oskar-gmerek)** to help keep the project maintained.
 
+
 ## 🧪 Development & Testing
 
 This monorepo includes comprehensive testing to ensure the adapter works reliably:

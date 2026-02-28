@@ -134,8 +134,7 @@ jobs:
             - name: Setup Node.js for publishing
               uses: actions/setup-node@v4
               with:
-                  node-version: "18"
-                  registry-url: "https://registry.npmjs.org"
+                  node-version: "24"
 
             # --- BETA ---
             - name: Perform Beta Release
@@ -172,9 +171,7 @@ jobs:
                     fs.writeFileSync("README.md", merged);
                   '
                   cd packages/surreal-better-auth/dist
-                  npm publish --tag beta --provenance --access public
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+                  npm publish --provenance --access public --tag beta
 
             - name: Commit, push, and tag (Beta)
               if: github.ref == 'refs/heads/beta'
@@ -233,8 +230,6 @@ jobs:
                   '
                   cd packages/surreal-better-auth/dist
                   npm publish --provenance --access public
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
             - name: Commit, tag and push (Stable)
               if: github.ref == 'refs/heads/main'

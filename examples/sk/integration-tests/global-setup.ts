@@ -9,9 +9,7 @@ async function globalSetup(_config: FullConfig) {
   if (!process.env.CI) {
     console.log("🌐 Checking for Playwright browsers (chromium)...");
     try {
-      // Ta komenda jest inteligentna: jeśli chromium jest zainstalowane,
-      // sprawdzi to w < 1s i nic nie pobierze.
-      execSync("bunx playwright install chromium", { stdio: "inherit" });
+      execSync("bunx playwright install chromium", { stdio: "ignore" });
       // oxlint-disable-next-line
     } catch (error) {
       console.warn(
@@ -20,6 +18,9 @@ async function globalSetup(_config: FullConfig) {
     }
   }
 
+  process.env.BETTER_AUTH_SECRET =
+    process.env.BETTER_AUTH_SECRET || "static-test-secret-at-least-32-chars-long";
+  process.env.BETTER_AUTH_URL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
   const db = new Surreal();
 
   try {
@@ -30,11 +31,15 @@ async function globalSetup(_config: FullConfig) {
     const surrealDb = process.env.SURREALDB_DB || "example-sveltekit";
 
     await db.connect(surrealUrl);
+    console.log(`✅ Connected to ${surrealUrl}!`);
     await db.signin({ username: surrealUser, password: surrealPass });
     await db.use({ namespace: surrealNs, database: surrealDb });
 
     console.log("📊 Setting up database schema...");
-    console.log(`✅ Connected to ${surrealUrl}!`);
+    console.log("🧹 Wiping the entire database for a clean slate...");
+    await db.query(`REMOVE DATABASE ${surrealDb};`);
+    await db.query(`DEFINE DATABASE ${surrealDb};`);
+    await db.use({ namespace: surrealNs, database: surrealDb });
 
     // Load schema from file or generate it
     const schemaPath = join(process.cwd(), "schema.surql");
@@ -68,20 +73,22 @@ async function globalSetup(_config: FullConfig) {
     // Apply schema to database
     await db.import(schemaContent);
 
-    console.log("🧹 Ensuring clean test environment...");
+    // console.log("🧹 Ensuring clean test environment...");
 
-    // Extract table names from schema and clean them
-    const tableNames = extractTableNames(schemaContent);
+    // // Extract table names from schema and clean them
+    // const tableNames = extractTableNames(schemaContent);
 
-    for (const tableName of tableNames) {
-      try {
-        await db.query(`DELETE ${tableName}`);
-      } catch (error) {
-        // Ignore errors for non-existent tables
-      }
-    }
+    // for (const tableName of tableNames) {
+    //   try {
+    //     await db.query(`DELETE ${tableName}`);
+    //   } catch (error) {
+    //     // Ignore errors for non-existent tables
+    //   }
+    // }
 
-    console.log(`🗑️ Cleaned ${tableNames.length} tables: ${tableNames.join(", ")}`);
+    // console.log(`🗑️ Cleaned ${tableNames.length} tables: ${tableNames.join(", ")}`);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     console.log("✅ Test environment setup complete!");
   } catch (error) {
     console.error("❌ Failed to setup test environment:", error);

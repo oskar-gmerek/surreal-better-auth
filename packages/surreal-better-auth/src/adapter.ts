@@ -8,6 +8,7 @@ import {
   BoundQuery,
   DateTime,
   escapeIdent,
+  Features,
   raw,
   RecordId,
   StringRecordId,
@@ -338,7 +339,15 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
       /**
        * Wraps adapter operations in a SurrealDB transaction.
        */
-      transaction: async (cb: any) => {
+      transaction: async (cb) => {
+        // Check if transactions are supported by the engine.
+        if (!db.isFeatureSupported(Features.Transactions)) {
+          // If not supported, use a base adapter and execute sequentially.
+          const baseAdapter = lazyAdapter(authOptions);
+          return await cb(baseAdapter);
+        }
+
+        // If transactions are supported, use a transactional adapter.
         const txn = await db.beginTransaction();
         try {
           const transactionalAdapter = createAdapterFactory({

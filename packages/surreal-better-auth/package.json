@@ -11,16 +11,17 @@
     "type": "git",
     "url": "https://github.com/oskar-gmerek/surreal-better-auth.git"
   },
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+
   "peerDependencies": {
-    "better-auth": "^1.4.19",
+    "better-auth": "^1.4.20",
     "surrealdb": "^2.0.0"
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
     }
   },
   "description": "SurrealDB adapter for Better Auth",
@@ -29,7 +30,8 @@
     "bun": ">=1.3.10"
   },
   "files": [
-    "dist"
+    "dist",
+    "welcome.js"
   ],
   "keywords": [
     "adapter",
@@ -54,8 +56,8 @@
     "test:unit": "bun run build && vitest run tests/unit/",
     "test:integration": "bun run build && vitest run tests/integration/",
     "test:plugins": "vitest run tests/plugins/",
-    "postinstall": "node src/welcome.js"
+    "postinstall": "node welcome.js"
   },
   "type": "module",
-  "types": "./dist/index.d.ts"
+  "types": "./dist/index.d.mts"
 }

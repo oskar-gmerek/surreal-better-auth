@@ -144,12 +144,18 @@ jobs:
                   node -e '
                     const fs = require("fs"); const path = "./package.json"; const pkg = JSON.parse(fs.readFileSync(path, "utf8")); let current = pkg.version; let newVersion;
                     if (current.includes("-beta.")) { let [main, beta] = current.split("-beta."); newVersion = `${main}-beta.${parseInt(beta) + 1}`; } else { newVersion = `${current}-beta.0`; }
-                    pkg.version = newVersion; fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n"); console.log(`Version bumped to ${newVersion}`);
+                    pkg.version = newVersion; fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
                     fs.appendFileSync(process.env.GITHUB_ENV, `NEW_VERSION=${newVersion}\n`);
                   '
+                  cp README.md dist/
+                  cp LICENSE dist/
+                  cp welcome.js dist/
                   node -e '
-                    const fs = require("fs"); const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
-                    delete pkg.files; delete pkg.scripts; delete pkg.devDependencies;
+                    const fs = require("fs");
+                    const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
+                    const pi = pkg.scripts.postinstall;
+                    delete pkg.files; delete pkg.devDependencies;
+                    pkg.scripts = pi ? { postinstall: pi } : {};
                     const f = (o, k) => { if (o && o[k] && typeof o[k] === "string") o[k] = o[k].replace("./dist/", "./"); };
                     f(pkg, "main"); f(pkg, "module"); f(pkg, "types");
                     if (pkg.exports) {
@@ -160,8 +166,6 @@ jobs:
                     }
                     fs.writeFileSync("./dist/package.json", JSON.stringify(pkg, null, 2) + "\n");
                   '
-                  cp README.md dist/
-                  cp LICENSE dist/
                   cd ../..
                   node -e '
                     const fs = require("fs");
@@ -171,7 +175,7 @@ jobs:
                     fs.writeFileSync("README.md", merged);
                   '
                   cd packages/surreal-better-auth/dist
-                  npm publish --provenance --access public --tag beta
+                  npm publish --tag beta --provenance --access public
 
             - name: Commit, push, and tag (Beta)
               if: github.ref == 'refs/heads/beta'
@@ -181,7 +185,7 @@ jobs:
                   git pull
                   git add packages/surreal-better-auth/package.json
                   git add README.md
-                  git commit -m "chore: bump version to ${{ env.NEW_VERSION }} and update README [skip ci]"
+                  git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
                   git tag ${{ env.NEW_VERSION }}
                   git push && git push --tags
 
@@ -202,12 +206,18 @@ jobs:
                   node -e '
                     const fs = require("fs"); const path = "./package.json"; const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
                     let stableVersion = pkg.version.split("-beta.")[0]; pkg.version = stableVersion;
-                    fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n"); console.log(`Version bumped to ${stableVersion}`);
+                    fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
                     fs.appendFileSync(process.env.GITHUB_ENV, `STABLE_VERSION=${stableVersion}\n`);
                   '
+                  cp README.md dist/
+                  cp LICENSE dist/
+                  cp welcome.js dist/
                   node -e '
-                    const fs = require("fs"); const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
-                    delete pkg.files; delete pkg.scripts; delete pkg.devDependencies;
+                    const fs = require("fs");
+                    const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
+                    const pi = pkg.scripts.postinstall;
+                    delete pkg.files; delete pkg.devDependencies;
+                    pkg.scripts = pi ? { postinstall: pi } : {};
                     const f = (o, k) => { if (o && o[k] && typeof o[k] === "string") o[k] = o[k].replace("./dist/", "./"); };
                     f(pkg, "main"); f(pkg, "module"); f(pkg, "types");
                     if (pkg.exports) {
@@ -218,8 +228,6 @@ jobs:
                     }
                     fs.writeFileSync("./dist/package.json", JSON.stringify(pkg, null, 2) + "\n");
                   '
-                  cp README.md dist/
-                  cp LICENSE dist/
                   cd ../..
                   node -e '
                     const fs = require("fs");
@@ -239,7 +247,7 @@ jobs:
                   git pull
                   git add packages/surreal-better-auth/package.json
                   git add README.md
-                  git commit -m "chore: release stable version ${{ env.STABLE_VERSION }} and update README [skip ci]"
+                  git commit -m "chore: release stable version ${{ env.STABLE_VERSION }} [skip ci]"
                   git tag v${{ env.STABLE_VERSION }}
                   git push
                   git push --tags

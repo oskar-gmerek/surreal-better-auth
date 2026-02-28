@@ -197,7 +197,7 @@ describe("SurrealDB Adapter - Edge Cases", async () => {
         await txn.create({
           model: "user",
           data: {
-            name: "Tx User",
+            name: "Txn User",
             email: testEmail,
             emailVerified: true,
             createdAt: new Date(),

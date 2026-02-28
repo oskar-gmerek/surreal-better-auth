@@ -303,8 +303,8 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
     };
 
   return (options: any): DBAdapter => {
-    const supportsTx = db.isFeatureSupported(Features.Transactions);
-
+    const supportsTxn = db.isFeatureSupported(Features.Transactions);
+    console.log({ supportsTxn });
     const adapterOptions: AdapterFactoryOptions = {
       config: {
         adapterId: "surrealdb",
@@ -343,7 +343,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
         /**
          * Wraps adapter operations in a SurrealDB transaction.
          */
-        transaction: supportsTx
+        transaction: supportsTxn
           ? async (cb) => {
               const txn = await db.beginTransaction();
               try {

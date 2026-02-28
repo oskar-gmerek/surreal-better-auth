@@ -34,6 +34,7 @@ async function globalSetup(_config: FullConfig) {
     await db.use({ namespace: surrealNs, database: surrealDb });
 
     console.log("📊 Setting up database schema...");
+    console.log(`✅ Connected to ${surrealUrl}!`);
 
     // Load schema from file or generate it
     const schemaPath = join(process.cwd(), "schema.surql");

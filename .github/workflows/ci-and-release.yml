@@ -41,6 +41,11 @@ jobs:
               uses: oven-sh/setup-bun@v2
               with:
                   bun-version: latest
+            - name: Setup Deno
+              if: matrix.runtime.type == 'deno'
+              uses: denoland/setup-deno@v2
+              with:
+                  deno-version: v2.x
             - name: Install dependencies
               run: bun install
             - name: Build package
@@ -52,7 +57,7 @@ jobs:
                   echo "SurrealDB is ready!"
             - name: Run adapter tests (Node.js)
               if: matrix.runtime.type == 'node'
-              run: npm run test:adapter -- --fileParallelism=false
+              run: npm run test:adapter
             - name: Run adapter tests (Bun)
               if: matrix.runtime.type == 'bun'
               run: bun run test:adapter

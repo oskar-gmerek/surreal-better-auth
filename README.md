@@ -1,14 +1,14 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero.webp?raw=true">
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero-white.webp?raw=true">
-    <img alt="surreal-better-auth banner" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero.webp?raw=true">
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/hero.webp?raw=true">
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/hero-white.webp?raw=true">
+    <img alt="surreal-better-auth banner" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/hero.webp?raw=true">
   </picture>
 </p>
 
 <h1 style="margin-top:40px;display:flex;align-content:center;"> 
 
-<img width="38" height="38" alt="Image" align="center" src="https://github.com/user-attachments/assets/d2765e21-1554-47d6-9e0d-8706b3716f63" /> SurrealDB Adapter for Better Auth </h1>
+# <img width="38" height="38" alt="Image" align="center" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/atom.png?raw=true" /> SurrealDB Adapter for Better Auth </h1>
 
 [![NPM Version](https://img.shields.io/npm/v/surreal-better-auth?style=for-the-badge&color=%233ca916)](https://www.npmjs.com/package/surreal-better-auth)[![NPM Downloads](https://img.shields.io/npm/dy/surreal-better-auth?style=for-the-badge&color=%233ca916&label=NPMX%20STATS)](https://npmx.dev/package/surreal-better-auth)![NPM Unpacked Size](https://img.shields.io/npm/unpacked-size/surreal-better-auth?style=for-the-badge&color=%233ca916)
 ![GitHub Created At](https://img.shields.io/github/created-at/oskar-gmerek/surreal-better-auth?style=for-the-badge&color=%233ca916)![NPM Last Update](https://img.shields.io/npm/last-update/surreal-better-auth?style=for-the-badge&color=%233ca916)
@@ -24,7 +24,7 @@ This adapter is built to leverage the best of both worlds: SurrealDB's multi-mod
 
 ---
 
-## <img width="32" height="32" align="center" alt="Image" src="https://github.com/user-attachments/assets/aa203d67-87b8-4354-b40f-5c6b893d9c9f" /> Why this adapter?
+## <img width="32" height="32" align="center" alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/question.png?raw=true" /> Why this adapter?
 
 Built with real-world scenarios in mind, this adapter goes beyond simple CRUD operations to ensure a seamless developer experience:
 
@@ -36,7 +36,7 @@ Built with real-world scenarios in mind, this adapter goes beyond simple CRUD op
 
 ---
 
-## <img width="32" height="32" align="center"  alt="Image" src="https://github.com/user-attachments/assets/1ab3c833-8fc2-4220-bd28-3d5a16e41953" /> Key Features
+## <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/crown.png?raw=true" /> Key Features
 
 - **Secure Execution:** Powered by `surql` tagged templates for safe, parameterized queries.
 - **Polymorphic Intelligence:** Smartly distinguishes between native `RecordId` (Credentials) and `string` (OAuth) for the `accountId` field.
@@ -47,7 +47,7 @@ Built with real-world scenarios in mind, this adapter goes beyond simple CRUD op
 
 ---
 
-## <img width="32" height="32" align="center" alt="Image" src="https://github.com/user-attachments/assets/cce03256-ead6-46d4-9d7c-304e7e152f32" />  Requirements
+## <img width="32" height="32" align="center" alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/requirements.png?raw=true" />  Requirements
 
 - **Bun**: >= 1.3.10 (or **Node.js**: >= 20.0.0)
 - **Better Auth**: ^1.4.20
@@ -56,7 +56,7 @@ Built with real-world scenarios in mind, this adapter goes beyond simple CRUD op
 
 ---
 
-## <img width="32" height="32" align="center" alt="Image" src="https://github.com/user-attachments/assets/25b8a073-9c3a-4190-8ff6-173f77b5e84f" />  Quick Start
+## <img width="32" height="32" align="center" alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/quick.png?raw=true" />  Quick Start
 
 ### 1. Installation
 
@@ -109,9 +109,12 @@ bun x @better-auth/cli@latest generate
   ```
   *Note: You can also use **Surrealist** or any other method to import the generated file.*
 
+### 4. Support development & maintenance
+  - **Star the project** on [GitHub](https://github.com/oskar-gmerek/surreal-better-auth)
+  - **[Sponsor the development](https://github.com/sponsors/oskar-gmerek)** to help keep the project maintained. You will also get a banner on this repository.
 ---
 
-## <img width="32" height="32" align="center" alt="Image" src="https://github.com/user-attachments/assets/cd1ee597-7cff-4a86-adc0-a4a7cd3ea9bc" /> Best Practices & Architecture
+## <img width="32" height="32" align="center" alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/brain.png?raw=true" /> Best Practices & Architecture
 
 ### Database Isolation
 For better security and organization, we recommend isolating auth data into a dedicated database within your namespace:
@@ -123,12 +126,11 @@ To implement native SurrealDB Row-Level Security based on the authenticated user
 
 ---
 
-## <img width="32" height="32" align="center" alt="Image" src="https://github.com/user-attachments/assets/b0283554-2da8-4538-8d87-8935c4c24e84" /> Show Your Support
+## <img width="32" height="32" align="center" alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/star.png?raw=true" /> Show Your Support
 
 If this adapter helps your project, please consider:
 - ⭐ **Starring the project** on [GitHub](https://github.com/oskar-gmerek/surreal-better-auth)
 - 💖 **[Sponsoring the development](https://github.com/sponsors/oskar-gmerek)** to help keep the project maintained.
-
 
 ## 🧪 Development & Testing
 
@@ -156,13 +158,13 @@ bun run test:all
 bun run dev
 ```
 
-## 📄 Adapter License
+## <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/rules.png?raw=true" /> Adapter License
 
 `surreal-better-auth` package - MIT License - see [LICENSE](./packages/surreal-better-auth/LICENSE) for details.
 
 ---
 
-## 🔗 Links
+## <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/external.png?raw=true" /> Links
 
 - 📖 [better-auth Documentation](https://www.better-auth.com/docs/installation)
 - 🗄️ [SurrealDB Documentation](https://surrealdb.com/docs/surrealdb)
@@ -174,8 +176,6 @@ bun run dev
 
 <div align="center">
 
-**Made with ❤️ for the SurrealDB and Better Auth communities**
-
-[⭐ Star this project](https://github.com/oskar-gmerek/surreal-better-auth) • [🐛 Report Issues](https://github.com/oskar-gmerek/surreal-better-auth/issues) • [💡 Request Features](https://github.com/oskar-gmerek/surreal-better-auth/issues/new)
+**Made with <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/heart.png?raw=true" /> for the SurrealDB and Better Auth communities**
 
 </div>

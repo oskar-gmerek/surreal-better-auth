@@ -1,5 +1,5 @@
 import type { FullConfig } from "@playwright/test";
-import { Surreal } from "surrealdb";
+import { escapeIdent, Surreal } from "surrealdb";
 import { readFileSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
@@ -37,8 +37,8 @@ async function globalSetup(_config: FullConfig) {
 
     console.log("📊 Setting up database schema...");
     console.log("🧹 Wiping the entire database for a clean slate...");
-    await db.query(`REMOVE DATABASE ${surrealDb};`);
-    await db.query(`DEFINE DATABASE ${surrealDb};`);
+    await db.query(`REMOVE DATABASE ${escapeIdent(surrealDb)};`);
+    await db.query(`DEFINE DATABASE ${escapeIdent(surrealDb)};`);
     await db.use({ namespace: surrealNs, database: surrealDb });
 
     // Load schema from file or generate it

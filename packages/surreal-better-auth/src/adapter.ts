@@ -302,74 +302,69 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
       };
     };
 
-  const adapterOptions: AdapterFactoryOptions = {
-    config: {
-      adapterId: "surrealdb",
-      adapterName: "SurrealDB",
-      usePlural: config?.usePlural ?? false,
-      debugLogs: config?.debugLogs ?? false,
-      supportsJSON: true,
-      supportsArrays: true,
-      supportsUUIDs: false,
-      // @ts-expect-error
-      supportsJoin: true,
-      supportsDates: true,
-      supportsBooleans: true,
-      supportsNumericIds: true,
-      customIdGenerator: config?.idGenerator
-        ? () => {
-            return "__surreal__";
-          }
-        : undefined,
-      /**
-       * Transforms SurrealDB specific types back to standard JavaScript types.
-       * Converts RecordId to string and Surreal DateTime to native Date.
-       */
-      customTransformOutput: ({ data }) => {
-        if (data instanceof RecordId || data instanceof StringRecordId) {
-          return data.toString();
-        }
-
-        if (data instanceof DateTime) {
-          return data.toDate();
-        }
-
-        return data;
-      },
-      /**
-       * Wraps adapter operations in a SurrealDB transaction.
-       */
-      transaction: async (cb) => {
-        // Check if transactions are supported by the engine.
-        if (!db.isFeatureSupported(Features.Transactions)) {
-          // If not supported, use a base adapter and execute sequentially.
-          const baseAdapter = lazyAdapter(authOptions);
-          return await cb(baseAdapter);
-        }
-
-        // If transactions are supported, use a transactional adapter.
-        const txn = await db.beginTransaction();
-        try {
-          const transactionalAdapter = createAdapterFactory({
-            config: adapterOptions.config,
-            adapter: createCustomAdapter(txn),
-          })(authOptions);
-
-          const result = await cb(transactionalAdapter);
-          await txn.commit();
-          return result;
-        } catch (err) {
-          await txn.cancel();
-          throw err;
-        }
-      },
-    },
-    adapter: createCustomAdapter(db),
-  };
-
-  const lazyAdapter = createAdapterFactory(adapterOptions);
-
   return (options: any): DBAdapter => {
-    return lazyAdapter(options);
+    const supportsTx = db.isFeatureSupported(Features.Transactions);
+
+    const adapterOptions: AdapterFactoryOptions = {
+      config: {
+        adapterId: "surrealdb",
+        adapterName: "SurrealDB",
+        usePlural: config?.usePlural ?? false,
+        debugLogs: config?.debugLogs ?? false,
+        supportsJSON: true,
+        supportsArrays: true,
+        supportsUUIDs: false,
+        // @ts-expect-error
+        supportsJoin: true,
+        supportsDates: true,
+        supportsBooleans: true,
+        supportsNumericIds: true,
+        customIdGenerator: config?.idGenerator
+          ? () => {
+              return "__surreal__";
+            }
+          : undefined,
+
+        /**
+         * Transforms SurrealDB specific types back to standard JavaScript types.
+         * Converts RecordId to string and Surreal DateTime to native Date.
+         */
+        customTransformOutput: ({ data }) => {
+          if (data instanceof RecordId || data instanceof StringRecordId) {
+            return data.toString();
+          }
+
+          if (data instanceof DateTime) {
+            return data.toDate();
+          }
+
+          return data;
+        },
+        /**
+         * Wraps adapter operations in a SurrealDB transaction.
+         */
+        transaction: supportsTx
+          ? async (cb) => {
+              const txn = await db.beginTransaction();
+              try {
+                const transactionalAdapter = createAdapterFactory({
+                  config: adapterOptions.config,
+                  adapter: createCustomAdapter(txn),
+                })(authOptions);
+
+                const result = await cb(transactionalAdapter);
+                await txn.commit();
+                return result;
+              } catch (err) {
+                await txn.cancel();
+                throw err;
+              }
+            }
+          : false,
+      },
+      adapter: createCustomAdapter(db),
+    };
+
+    return createAdapterFactory(adapterOptions)(options);
   };
 };

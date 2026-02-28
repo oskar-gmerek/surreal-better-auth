@@ -1,6 +1,6 @@
 {
   "name": "surreal-better-auth",
-  "version": "2.0.0-beta.4",
+  "version": "2.0.0-beta.6",
   "author": {
     "name": "Oskar Gmerek",
     "url": "https://oskargmerek.com",
@@ -51,8 +51,6 @@
   "scripts": {
     "build": "tsdown",
     "build:watch": "tsdown --watch",
-    "test": "vitest run tests/ --fileParallelism=false",
-    "test:plugins": "vitest run tests/plugins/",
     "postinstall": "node welcome.js"
   },
   "type": "module",

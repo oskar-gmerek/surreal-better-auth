@@ -1,10 +1,13 @@
 import { betterAuth } from "better-auth";
 import { openAPI, organization, username } from "better-auth/plugins";
 import { surrealdbAdapter } from "surreal-better-auth";
-import Surreal from "surrealdb";
+import { Surreal } from "surrealdb";
+import { WebSocket as NodeWebSocket } from "ws";
 
-const db = new Surreal();
-await db.connect("http://127.0.0.1:8000/rpc");
+const db = new Surreal({
+  websocketImpl: (globalThis.WebSocket || NodeWebSocket) as any,
+});
+await db.connect("ws://127.0.0.1:8000/rpc");
 await db.signin({ username: "root", password: "root" });
 await db.use({ namespace: "test", database: "example-sveltekit" });
 
@@ -16,10 +19,7 @@ export const auth = betterAuth({
     }),
     organization({
       async sendInvitationEmail(data) {
-        if (
-          process.env.NODE_ENV === "test" ||
-          process.env.NODE_ENV === "development"
-        ) {
+        if (process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development") {
           try {
             await fetch("http://localhost:3000/api/test/invitation-url", {
               method: "POST",
@@ -67,8 +67,9 @@ export const auth = betterAuth({
   ],
   secret: "surreal-better-auth-test",
   database: surrealdbAdapter(db, {
-    idGenerator: "surreal.ULID",
-    allowPassingId: true,
+    idGenerator: "guid",
+    logSurrealQL: false,
+    usePlural: false,
   }),
   user: {
     changeEmail: {
@@ -99,10 +100,7 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     sendVerificationEmail: async ({ url }) => {
-      if (
-        process.env.NODE_ENV === "test" ||
-        process.env.NODE_ENV === "development"
-      ) {
+      if (process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development") {
         try {
           await fetch("http://localhost:3000/api/test/verification-url", {
             method: "POST",

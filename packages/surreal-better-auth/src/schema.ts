@@ -124,7 +124,7 @@ export function generateSchema(params: GenerateSchemaParams): GenerateSchemaResu
     schemaLines.push(...buildTableBox(`TABLE: ${tableName}`));
     schemaLines.push(`DEFINE TABLE OVERWRITE ${tableName} SCHEMAFULL;`);
     schemaLines.push("");
-    schemaLines.push(`DEFINE FIELD OVERWRITE id ON TABLE ${tableName} TYPE record<${tableName}>;`);
+    schemaLines.push(`DEFINE FIELD OVERWRITE id ON TABLE ${tableName} TYPE any;`);
 
     // Generate field definitions
     for (const [internalFieldName, field] of Object.entries((tableDef as any).fields)) {

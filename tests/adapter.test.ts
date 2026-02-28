@@ -146,12 +146,12 @@ describe("SurrealDB adapter test", async () => {
       },
     });
 
+      // Passed ID should be overwrited by generateId function
     const res = await customAdapter.create({
       model: "user",
       data: {
         id: "user:passed_id",
         name: "user4",
-        test: "ustawione",
         email: "user4@email.com",
         emailVerified: true,
         createdAt: new Date(),

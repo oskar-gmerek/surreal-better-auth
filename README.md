@@ -133,6 +133,7 @@ If this adapter helps your project, please consider:
 - ⭐ **Starring the project** on [GitHub](https://github.com/oskar-gmerek/surreal-better-auth)
 - 💖 **[Sponsoring the development](https://github.com/sponsors/oskar-gmerek)** to help keep the project maintained.
 
+
 ## <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/pullrequest.png?raw=true" /> Development & Testing
 
 This monorepo includes comprehensive testing to ensure the adapter works reliably:

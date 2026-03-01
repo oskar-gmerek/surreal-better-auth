@@ -73,6 +73,8 @@ async function globalSetup(_config: FullConfig) {
     // Apply schema to database
     await db.import(schemaContent);
 
+    console.log(await db.query("INFO FOR DB;"));
+
     // console.log("🧹 Ensuring clean test environment...");
 
     // // Extract table names from schema and clean them

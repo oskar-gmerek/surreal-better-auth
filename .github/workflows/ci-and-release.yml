@@ -30,7 +30,8 @@ jobs:
                   surrealdb_port: 8000
                   surrealdb_username: root
                   surrealdb_password: root
-                  surrealdb_log: info
+                  surrealdb_auth: true,
+                  surrealdb_log: debug
                   surrealdb_additional_args: --allow-all
             - name: Setup Node.js
               if: matrix.runtime.type == 'node'

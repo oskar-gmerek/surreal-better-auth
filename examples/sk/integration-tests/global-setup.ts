@@ -1,5 +1,5 @@
 import type { FullConfig } from "@playwright/test";
-import { escapeIdent, Surreal } from "surrealdb";
+import { escapeIdent, surql, Surreal } from "surrealdb";
 import { readFileSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
@@ -71,9 +71,7 @@ async function globalSetup(_config: FullConfig) {
     }
 
     // Apply schema to database
-    await db.import(schemaContent);
-
-    console.log(await db.query("INFO FOR DB;"));
+    await db.query(schemaContent);
 
     // console.log("🧹 Ensuring clean test environment...");
 

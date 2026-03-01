@@ -94,7 +94,7 @@ jobs:
                   CI: true
                   BETTER_AUTH_SECRET: a_very_long_static_test_secret_32_chars
                   BETTER_AUTH_URL: http://localhost:3000
-                  SURREALDB_URL: http://localhost:8000
+                  SURREALDB_URL: http://localhost:8000/rpc
                   SURREALDB_USER: root
                   SURREALDB_PASS: root
                   SURREALDB_NS: test

@@ -1,5 +1,5 @@
 import type { FullConfig } from "@playwright/test";
-import { escapeIdent, surql, Surreal } from "surrealdb";
+import { escapeIdent, Surreal } from "surrealdb";
 import { readFileSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
@@ -24,7 +24,7 @@ async function globalSetup(_config: FullConfig) {
   const db = new Surreal();
 
   try {
-    const surrealUrl = process.env.SURREALDB_URL || "ws://127.0.0.1:8000/rpc";
+    const surrealUrl = process.env.SURREALDB_URL || "http://127.0.0.1:8000/rpc";
     const surrealUser = process.env.SURREALDB_USER || "root";
     const surrealPass = process.env.SURREALDB_PASS || "root";
     const surrealNs = process.env.SURREALDB_NS || "test";

@@ -73,20 +73,6 @@ async function globalSetup(_config: FullConfig) {
     // Apply schema to database
     await db.query(schemaContent);
 
-    // console.log("🧹 Ensuring clean test environment...");
-
-    // // Extract table names from schema and clean them
-    // const tableNames = extractTableNames(schemaContent);
-
-    // for (const tableName of tableNames) {
-    //   try {
-    //     await db.query(`DELETE ${tableName}`);
-    //   } catch (error) {
-    //     // Ignore errors for non-existent tables
-    //   }
-    // }
-
-    // console.log(`🗑️ Cleaned ${tableNames.length} tables: ${tableNames.join(", ")}`);
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     console.log("✅ Test environment setup complete!");
@@ -96,28 +82,6 @@ async function globalSetup(_config: FullConfig) {
   } finally {
     await db.close();
   }
-}
-
-/**
- * Extracts table names from SurrealDB schema content
- */
-function extractTableNames(schemaContent: string): string[] {
-  const tableRegex = /DEFINE TABLE (?:OVERWRITE )?(\w+)/g;
-  const tables = new Set<string>();
-  let match: RegExpExecArray | null;
-  while (true) {
-    match = tableRegex.exec(schemaContent);
-    if (match === null) {
-      break;
-    }
-    tables.add(match[1]);
-  }
-
-  //   while ((match = tableRegex.exec(schemaContent)) !== null) {
-  //     tables.add(match[1]);
-  //   }
-
-  return Array.from(tables);
 }
 
 export default globalSetup;

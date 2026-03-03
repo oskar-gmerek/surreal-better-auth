@@ -25,21 +25,23 @@ import {
   getReferencedModel,
   getSpecialReferenceModel,
   logSurrealQuery,
+  mapFetchedRelations,
   mapNullToUndefined,
   toRecordId,
 } from "./utils";
 import type { SurrealDBAdapterConfig } from "./types";
 import { generateSchema } from "./schema";
+import type { BetterAuthOptions } from "better-auth";
 
 /**
  * Better-Auth adapter for SurrealDB.
- * Supports native RecordId, transactions, and polymorphic relationships.
+ * Supports native RecordId, transactions, and fetch-based joins.
  *
- * @param db - An instance of SurrealDB client or transaction.
- * @param config - Optional configuration settings for the adapter.
+ * @param db - An instance of SurrealDB client.
+ * @param config - Configuration settings for the adapter.
  */
 export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) => {
-  let authOptions: any;
+  let authOptions: BetterAuthOptions;
 
   const createCustomAdapter =
     (client: Surreal | SurrealTransaction): AdapterFactoryCustomizeAdapterCreator =>
@@ -68,8 +70,8 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
       );
 
       /**
-       * Prepares data for SurrealDB storage by converting strings to RecordIds where appropriate
-       * and mapping nulls to undefined for idiomatic MERGE behavior.
+       * Transforms data for SurrealDB by converting appropriate strings to RecordIds
+       * and mapping nulls to undefined for correct MERGE behavior.
        */
       const transformDataForDB = (model: string, data: Record<string, any>) => {
         const transformed = { ...data };
@@ -99,11 +101,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
         return mapNullToUndefined(transformed);
       };
 
-      const recordIdMap = buildRecordIdMap(
-        (options as any)?.schema?.tables,
-        getModelName,
-        getFieldName,
-      );
+      const recordIdMap = buildRecordIdMap(schema, getModelName, getFieldName);
 
       const getReferencedModelFn = (tableName: string, fieldName: string) =>
         getReferencedModel(
@@ -121,9 +119,13 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           const idGenerator = config?.idGenerator;
           const providedId = data.id;
           const { id: _, ...restData } = data;
-
+          console.log({ dataID: data.id });
           function buildCreateQuery() {
-            if (providedId && providedId !== "__surreal__") {
+            if (
+              providedId &&
+              providedId !== "__surreal__" &&
+              options.advanced?.database?.generateId
+            ) {
               return surql`CREATE type::record(${model}, ${String(providedId)})`;
             }
 
@@ -141,13 +143,13 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
             }
           }
 
-          let surrealql = buildCreateQuery();
+          const surrealql = buildCreateQuery();
           surrealql.append(surql` CONTENT ${transformDataForDB(model, restData)}`);
 
-          const [record] = await client.query<[any[]]>(surrealql);
+          const [result] = await client.query<[any[]]>(surrealql);
           logSurrealQuery(config, "create", model, surrealql);
 
-          return record[0] as any;
+          return result[0] as any;
         },
 
         async findOne({ model, where, select, join }) {
@@ -176,7 +178,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           logSurrealQuery(config, "findOne", model, surrealql);
 
           const [result] = await client.query<[any[]]>(surrealql);
-          return result?.[0] || null;
+          return mapFetchedRelations(result?.[0], join, model, getFieldName) || null;
         },
 
         async findMany({ model, where, limit, offset, sortBy, join }) {
@@ -202,17 +204,15 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
             surrealql.append(surql` START ${offset}`);
           }
 
-          if (join) {
-            const fetchLinks = buildFetchLinks(join, getFieldName, model);
-            if (fetchLinks && fetchLinks.length > 0) {
-              surrealql.append(surql` FETCH ${raw(fetchLinks.join(", "))}`);
-            }
+          const fetchLinks = buildFetchLinks(join, getFieldName, model);
+          if (fetchLinks && fetchLinks.length > 0) {
+            surrealql.append(surql` FETCH ${raw(fetchLinks.join(", "))}`);
           }
 
           logSurrealQuery(config, "findMany", model, surrealql);
 
           const [result] = await client.query<[any[]]>(surrealql);
-          return result || [];
+          return mapFetchedRelations(result || [], join, model, getFieldName);
         },
 
         async update({ model, where, update }) {
@@ -222,7 +222,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           const tableIdent = raw(escapeIdent(model));
           const transformedUpdate = transformDataForDB(model, update as any);
 
-          let surrealql = surql`UPDATE ${tableIdent} MERGE ${transformedUpdate} WHERE `;
+          const surrealql = surql`UPDATE ${tableIdent} MERGE ${transformedUpdate} WHERE `;
           surrealql.append(whereExpr);
 
           logSurrealQuery(config, "update", model, surrealql);
@@ -238,7 +238,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           const tableIdent = raw(escapeIdent(model));
           const data = mapNullToUndefined(update);
 
-          let surrealql = surql`UPDATE ${tableIdent} MERGE ${data as Values<unknown>} WHERE `;
+          const surrealql = surql`UPDATE ${tableIdent} MERGE ${data as Values<unknown>} WHERE `;
           surrealql.append(whereExpr);
 
           logSurrealQuery(config, "updateMany", model, surrealql);
@@ -251,7 +251,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           const whereExpr = buildWhere(where, model);
           const tableIdent = raw(escapeIdent(model));
 
-          let surrealql = surql`SELECT count() FROM ${tableIdent}`;
+          const surrealql = surql`SELECT count() FROM ${tableIdent}`;
           if (whereExpr) {
             surrealql.append(surql` WHERE `).append(whereExpr);
           }
@@ -268,7 +268,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           if (!whereExpr) return;
 
           const tableIdent = raw(escapeIdent(model));
-          let surrealql = surql`DELETE FROM ${tableIdent} WHERE `;
+          const surrealql = surql`DELETE FROM ${tableIdent} WHERE `;
           surrealql.append(whereExpr);
 
           logSurrealQuery(config, "delete", model, surrealql);
@@ -280,7 +280,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           if (!whereExpr) return 0;
 
           const tableIdent = raw(escapeIdent(model));
-          let surrealql = surql`DELETE FROM ${tableIdent} WHERE `;
+          const surrealql = surql`DELETE FROM ${tableIdent} WHERE `;
           surrealql.append(whereExpr);
           surrealql.append(surql` RETURN BEFORE`);
 
@@ -303,8 +303,9 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
     };
 
   return (options: any): DBAdapter => {
+    // Determine transaction support dynamically
     const supportsTxn = db.isFeatureSupported(Features.Transactions);
-    console.log({ supportsTxn });
+
     const adapterOptions: AdapterFactoryOptions = {
       config: {
         adapterId: "surrealdb",
@@ -313,38 +314,33 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
         debugLogs: config?.debugLogs ?? false,
         supportsJSON: true,
         supportsArrays: true,
-        supportsUUIDs: false,
+        supportsUUIDs: true,
         // @ts-expect-error
         supportsJoin: true,
         supportsDates: true,
         supportsBooleans: true,
         supportsNumericIds: true,
-        customIdGenerator: config?.idGenerator
-          ? () => {
-              return "__surreal__";
-            }
-          : undefined,
+        customIdGenerator: config?.idGenerator ? () => "__surreal__" : undefined,
 
         /**
          * Transforms SurrealDB specific types back to standard JavaScript types.
-         * Converts RecordId to string and Surreal DateTime to native Date.
          */
         customTransformOutput: ({ data }) => {
           if (data instanceof RecordId || data instanceof StringRecordId) {
             return data.toString();
           }
-
           if (data instanceof DateTime) {
             return data.toDate();
           }
-
           return data;
         },
+
         /**
-         * Wraps adapter operations in a SurrealDB transaction.
+         * Handles database transactions by creating a dedicated transactional adapter.
          */
         transaction: supportsTxn
           ? async (cb) => {
+              if (config?.debugLogs) console.log("--- [TXN] Starting transaction... ---");
               const txn = await db.beginTransaction();
               try {
                 const transactionalAdapter = createAdapterFactory({
@@ -353,9 +349,11 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
                 })(authOptions);
 
                 const result = await cb(transactionalAdapter);
+                if (config?.debugLogs) console.log("--- [TXN] Committing transaction... ---");
                 await txn.commit();
                 return result;
               } catch (err) {
+                if (config?.debugLogs) console.log("--- [TXN] Rolling back transaction... ---");
                 await txn.cancel();
                 throw err;
               }

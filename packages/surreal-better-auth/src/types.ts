@@ -23,6 +23,7 @@ export interface RecordIdMap {
 export interface SurrealDBAdapterConfig {
   /**
    * Enable granular debug logging for adapter operations.
+   * @default false
    */
   debugLogs?: DBAdapterDebugLogOption;
 
@@ -35,11 +36,13 @@ export interface SurrealDBAdapterConfig {
   /**
    * Strategy for generating record IDs in SurrealDB.
    * If undefined, falls back to Better-Auth's default behavior.
+   * @default undefined
    */
   idGenerator?: IdGenerator;
 
   /**
    * Displays the interpolated SurrealQL queries in the console for debugging purposes.
+   * @default false
    */
   logSurrealQL?: boolean;
 }

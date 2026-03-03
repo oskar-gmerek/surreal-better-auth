@@ -23,7 +23,7 @@
         "build": "bun run --filter=surreal-better-auth build",
         "build:watch": "bun run --filter=surreal-better-auth build:watch",
         "dev": "bun run --port 3000 --filter=sk --elide-lines=0 dev",
-        "t": "cd unit-tests && bun vitest test suite",
+        "t": "cd adapter-tests && bun vitest test",
         "test:adapter": "vitest run ./unit-tests --fileParallelism=false",
         "test:integration": "cd examples/sk && bunx playwright test",
         "test:all": "bun run test:adapter && bun run test:integration",

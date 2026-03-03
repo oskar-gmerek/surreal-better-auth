@@ -119,7 +119,6 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           const idGenerator = config?.idGenerator;
           const providedId = data.id;
           const { id: _, ...restData } = data;
-          console.log({ dataID: data.id });
           function buildCreateQuery() {
             if (
               providedId &&

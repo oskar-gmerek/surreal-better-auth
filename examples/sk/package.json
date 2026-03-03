@@ -34,7 +34,7 @@
     "vitest-browser-svelte": "1.0.0"
   },
   "dependencies": {
-    "better-auth": "^1.4.20",
+    "better-auth": "^1.5.1",
     "bits-ui": "^2.9.1",
     "surreal-better-auth": "workspace:*"
   }

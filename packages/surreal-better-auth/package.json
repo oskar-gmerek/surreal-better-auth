@@ -14,7 +14,7 @@
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
   "peerDependencies": {
-    "better-auth": "^1.4.20",
+    "better-auth": "^1.5.1",
     "surrealdb": "^2.0.0"
   },
   "exports": {

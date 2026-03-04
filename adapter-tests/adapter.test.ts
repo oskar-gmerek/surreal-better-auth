@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe } from "vitest";
 import { surrealdbAdapter } from "../packages/surreal-better-auth/src/adapter";
 import { getTestSurrealInstance } from "./surrealdb";
 import { crudTestSuite } from "./suites/crudTestSuite";
+// import { surrealTestSuite } from "./suites/surrealTestSuite";
 import { surrealTestSuite } from "./suites/surrealTestSuite";
 import { specialConfigTestSuite } from "./suites/specialConfigTestSuite";
 import { Surreal } from "surrealdb";
@@ -13,23 +14,6 @@ import { Surreal } from "surrealdb";
  * SurrealDB-specific edge case tests.
  */
 describe("SurrealDB Adapter Integration Tests", async () => {
-  let db: Surreal;
-
-  // 1. Inicjalizacja bazy wewnątrz cyklu życia Vitest
-  beforeAll(async () => {
-    console.log("[CI DEBUG] Connecting to SurrealDB...");
-    db = await getTestSurrealInstance();
-    console.log("[CI DEBUG] Connected. Status:", db.status);
-  });
-
-  // 2. Zamknięcie bazy po testach
-  afterAll(async () => {
-    if (db) {
-      console.log("[CI DEBUG] Closing connection...");
-      await db.close();
-    }
-  });
-
   const { execute } = await testAdapter({
     /**
      * Adapter Factory Wrapper.
@@ -37,6 +21,9 @@ describe("SurrealDB Adapter Integration Tests", async () => {
      * This allows us to inject experimental flags and custom configurations.
      */
     adapter: async () => {
+      const db = await getTestSurrealInstance();
+      if (!db) throw new Error("DB not initialized!");
+
       const factory = surrealdbAdapter(db, {
         // logSurrealQL: true,
         // idGenerator: "guid",
@@ -54,6 +41,7 @@ describe("SurrealDB Adapter Integration Tests", async () => {
     },
 
     runMigrations: async (options) => {
+      const db = await getTestSurrealInstance();
       // Create a temporary instance to access the createSchema method with current options
       const tempAdapter = surrealdbAdapter(db, { idGenerator: "ULID" })(options);
 
@@ -87,14 +75,20 @@ describe("SurrealDB Adapter Integration Tests", async () => {
      * 1. Edge Cases: Specific SurrealDB behaviors (Transactions, FETCH Joins, etc.)
      * 2. Internal Tests: Standard CRUD and operator logic.
      */
-    tests: [crudTestSuite(), surrealTestSuite({ db }), specialConfigTestSuite()],
+    // tests: [crudTestSuite(), surrealTestSuite(), specialConfigTestSuite()],
+    tests: [
+      crudTestSuite(),
+      async (helpers: any) => {
+        const db = await getTestSurrealInstance();
+        return await surrealTestSuite(db)(helpers);
+      },
+      specialConfigTestSuite(),
+    ],
 
     /**
      * Cleanup logic performed after the entire test run finishes.
      */
-    additionalCleanups: async () => {
-      // Add any global cleanup logic here if necessary
-    },
+    additionalCleanups: async () => {},
   });
 
   /**

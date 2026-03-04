@@ -1,10 +1,11 @@
 import { escapeIdent, Surreal } from "surrealdb";
+import { WebSocket } from "ws";
 
 let db: Surreal;
 
 export const getTestSurrealInstance = async () => {
   if (!db) {
-    db = new Surreal();
+    db = new Surreal({ websocketImpl: WebSocket as any });
     process.env.BETTER_AUTH_URL = "http://localhost:3000";
     const surrealNS = "test";
     const surrealDB = "suite";

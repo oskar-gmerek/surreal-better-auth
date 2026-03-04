@@ -1,16 +1,11 @@
 import { testAdapter } from "@better-auth/test-utils/adapter";
-import { describe } from "vitest";
+import { afterAll, beforeAll, describe } from "vitest";
 import { surrealdbAdapter } from "../packages/surreal-better-auth/src/adapter";
 import { getTestSurrealInstance } from "./surrealdb";
 import { crudTestSuite } from "./suites/crudTestSuite";
 import { surrealTestSuite } from "./suites/surrealTestSuite";
 import { specialConfigTestSuite } from "./suites/specialConfigTestSuite";
-
-/**
- * Initialize the shared SurrealDB instance.
- * Using a singleton ensures the connection is 'warm' and features are negotiated.
- */
-const db = await getTestSurrealInstance();
+import { Surreal } from "surrealdb";
 
 /**
  * Main Integration Test Runner for the SurrealDB Adapter.
@@ -18,6 +13,23 @@ const db = await getTestSurrealInstance();
  * SurrealDB-specific edge case tests.
  */
 describe("SurrealDB Adapter Integration Tests", async () => {
+  let db: Surreal;
+
+  // 1. Inicjalizacja bazy wewnątrz cyklu życia Vitest
+  beforeAll(async () => {
+    console.log("[CI DEBUG] Connecting to SurrealDB...");
+    db = await getTestSurrealInstance();
+    console.log("[CI DEBUG] Connected. Status:", db.status);
+  });
+
+  // 2. Zamknięcie bazy po testach
+  afterAll(async () => {
+    if (db) {
+      console.log("[CI DEBUG] Closing connection...");
+      await db.close();
+    }
+  });
+
   const { execute } = await testAdapter({
     /**
      * Adapter Factory Wrapper.
@@ -75,7 +87,7 @@ describe("SurrealDB Adapter Integration Tests", async () => {
      * 1. Edge Cases: Specific SurrealDB behaviors (Transactions, FETCH Joins, etc.)
      * 2. Internal Tests: Standard CRUD and operator logic.
      */
-    tests: [crudTestSuite(), surrealTestSuite(), specialConfigTestSuite()],
+    tests: [crudTestSuite(), surrealTestSuite({ db }), specialConfigTestSuite()],
 
     /**
      * Cleanup logic performed after the entire test run finishes.

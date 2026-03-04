@@ -6,14 +6,14 @@ import { surrealdbAdapter } from "../packages/surreal-better-auth/dist/index.mjs
 import { getTestSurrealInstance } from "./surrealdb";
 import { testUtils } from "better-auth/plugins";
 
-const db = await getTestSurrealInstance();
+// const db = await getTestSurrealInstance();
 
 export const auth = betterAuth({
   experimental: {
     joins: true,
   },
 
-  database: surrealdbAdapter(db, {
+  database: surrealdbAdapter(async () => await getTestSurrealInstance(), {
     idGenerator: "ULID",
     logSurrealQL: true,
     usePlural: false,

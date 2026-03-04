@@ -1,15 +1,18 @@
-import { expect } from "vitest";
+import { beforeAll, expect } from "vitest";
 import { createTestSuite } from "@better-auth/test-utils/adapter";
-import { RecordId, StringRecordId, surql, DateTime } from "surrealdb";
-import { getTestSurrealInstance } from "../surrealdb.ts";
+import { RecordId, StringRecordId, surql, DateTime, Surreal } from "surrealdb";
+// import { getTestSurrealInstance as db } from "../surrealdb.ts";
 import { auth } from "../auth.ts";
+import { getTestSurrealInstance } from "../surrealdb.ts";
 
-const db = await getTestSurrealInstance();
-
+let db: Surreal;
 /**
  * Integration tests for SurrealDB specific logic, transactions, and joins.
  */
 export const surrealTestSuite = createTestSuite("Surreal Test Suite", {}, ({ adapter }) => {
+  beforeAll(async () => {
+    db = await getTestSurrealInstance();
+  });
   return {
     "[01] Polymorphic accountId: should store credential as RecordId and google as string":
       async () => {

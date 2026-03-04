@@ -50,7 +50,7 @@ Built with real-world scenarios in mind, this adapter goes beyond simple CRUD op
 ## <img width="32" height="32" align="center" alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/requirements.png?raw=true" />  Requirements
 
 - **Bun**: >= 1.3.10 (or **Node.js**: >= 20.0.0)
-- **Better Auth**: ^1.5.1
+- **Better Auth**: ^1.5.2
 - **SurrealDB JS SDK**: ^2.0.0
 - **SurrealDB Server**: v3.0.0+
 
@@ -91,7 +91,9 @@ export const auth = betterAuth({
     logSurrealQL: true   
     
   }),
+  // The rest of better-auth configuration
   emailAndPassword: { enabled: true }
+  // ...
 });
 ```
 
@@ -100,7 +102,7 @@ export const auth = betterAuth({
 Use the Better Auth CLI to generate your SurrealQL definitions:
 
 ```bash
-bun x @better-auth/cli@latest generate
+bunx auth generate
 ```
 
 - When prompted, save the output as `schema.surql` in your project root.
@@ -132,7 +134,6 @@ To implement native SurrealDB Row-Level Security based on the authenticated user
 If this adapter helps your project, please consider:
 - ⭐ **Starring the project** on [GitHub](https://github.com/oskar-gmerek/surreal-better-auth)
 - 💖 **[Sponsoring the development](https://github.com/sponsors/oskar-gmerek)** to help keep the project maintained.
-
 
 ## <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/pullrequest.png?raw=true" /> Development & Testing
 

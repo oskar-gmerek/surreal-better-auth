@@ -95,4 +95,13 @@ describe("SurrealDB Adapter Integration Tests", async () => {
    * Register the tests within the Vitest runner.
    */
   execute();
+
+  /**
+   * Cleanup logic performed after the entire test run finishes.
+   */
+  afterAll(async () => {
+    const db = await getTestSurrealInstance();
+    await db.query(`REMOVE DATABASE IF EXISTS suite`);
+    await db.close();
+  });
 });

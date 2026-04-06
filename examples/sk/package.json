@@ -29,7 +29,7 @@
     "svelte": "5.37.2",
     "svelte-check": "4.3.0",
     "typescript": "5.9.2",
-    "vite": "7.0.6",
+    "vite": "7.3.2",
     "vitest": "3.2.4",
     "vitest-browser-svelte": "1.0.0"
   },

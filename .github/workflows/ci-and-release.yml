@@ -214,9 +214,13 @@ jobs:
                   git config --local user.email "53402105+oskar-gmerek@users.noreply.github.com"
                   git config --local user.name "Oskar Gmerek"
                   git add README.md
-                  git commit -m "docs: sync monorepo README for v${{ env.VERSION }} [skip ci]"
-                  git pull --rebase origin ${{ github.ref_name }}
-                  git push origin ${{ github.ref_name }}
+                  if git diff --staged --quiet; then
+                    echo "README.md is already up to date, skipping commit."
+                  else
+                    git commit -m "docs: sync monorepo README for v${{ env.VERSION }} [skip ci]"
+                    git pull --rebase origin ${{ github.ref_name }}
+                    git push origin ${{ github.ref_name }}
+                  fi
 
             - name: Create GitHub Release
               if: steps.check-version.outputs.should_publish == 'true'

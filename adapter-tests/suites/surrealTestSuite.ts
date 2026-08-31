@@ -1,21 +1,23 @@
 import { expect } from "vitest";
 import { createTestSuite } from "@better-auth/test-utils/adapter";
-import { RecordId, StringRecordId, surql, DateTime, Surreal } from "surrealdb";
-import { auth } from "../auth.ts";
+import { RecordId, StringRecordId, surql, DateTime, type Surreal } from "surrealdb";
 
 /**
- * Integration tests for SurrealDB specific logic, transactions, and joins.
+ * Integration test suite for SurrealDB-specific internals:
+ * - Native RecordId graph pointers vs raw strings for polymorphic fields.
+ * - String safety against false-positive RecordId coercion.
+ * - Native SurrealDB DateTime storage vs JavaScript Date deserialization.
  */
 export const surrealTestSuite = (db: Surreal) => {
-  return async (_helpers: any) => {
-    const _suite = createTestSuite("Surreal Test Suite", {}, ({ adapter }) => {
+  return async () => {
+    return createTestSuite("SurrealDB Native Engine Tests", {}, ({ adapter }) => {
       return {
-        "[01] Polymorphic accountId: should store credential as RecordId and google as string":
+        "[01] Polymorphic accountId: should store credential as RecordId and OAuth as string":
           async () => {
             const user = await adapter.create({
               model: "user",
               data: {
-                name: "test user",
+                name: "Test User",
                 email: `test-poly-${Date.now()}@edge.com`,
                 emailVerified: true,
                 createdAt: new Date(),
@@ -23,6 +25,7 @@ export const surrealTestSuite = (db: Surreal) => {
               },
             });
 
+            // Credential account: accountId is the User's ID -> must be stored as native RecordId
             const acc1 = await adapter.create({
               model: "account",
               data: {
@@ -34,6 +37,7 @@ export const surrealTestSuite = (db: Surreal) => {
               },
             });
 
+            // OAuth account: accountId is an external provider ID -> must be stored as string
             const acc2 = await adapter.create({
               model: "account",
               data: {
@@ -56,34 +60,7 @@ export const surrealTestSuite = (db: Surreal) => {
             expect(typeof acc2Res[0].accountId).toBe("string");
           },
 
-        "[02] mapNullToUndefined: should effectively remove field from document on null update":
-          async () => {
-            const user = await adapter.create({
-              model: "user",
-              data: {
-                name: "Oskar",
-                email: `null-${Date.now()}@test.com`,
-                image: "http://image.com/old.png",
-                emailVerified: true,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              },
-            });
-
-            await adapter.update({
-              model: "user",
-              where: [{ field: "id", value: user.id }],
-              update: { image: null },
-            });
-
-            const [result] = await db.query<[any[]]>(
-              surql`SELECT * FROM user WHERE id = ${new StringRecordId(user.id)}`,
-            );
-
-            expect(result[0].image).toBeUndefined();
-          },
-
-        "[03] toRecordId safety: should not convert random strings with colons to RecordId":
+        "[02] toRecordId safety: should not convert non-table strings with colons to RecordId":
           async () => {
             const myName = "My Name is info:user_123";
 
@@ -102,94 +79,17 @@ export const surrealTestSuite = (db: Surreal) => {
               surql`SELECT name FROM user WHERE id = ${new StringRecordId(user.id)}`,
             );
 
+            expect(typeof dbUser[0].name).toBe("string");
             expect(dbUser[0].name).toBe(myName);
           },
 
-        "[04] Transactions: should rollback successful operations when a subsequent operation fails":
-          async () => {
-            const validEmail = `txn-valid-${Date.now()}@test.com`;
-            const invalidEmail = `txn-invalid-${Date.now()}@test.com`;
-
-            const ctx = await auth.$context;
-            const realAdapter = ctx.adapter;
-
-            try {
-              await realAdapter.transaction(async (txn: any) => {
-                await txn.create({
-                  model: "user",
-                  data: {
-                    name: "Good User",
-                    email: validEmail,
-                    emailVerified: true,
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                  },
-                });
-
-                await txn.create({
-                  model: "user",
-                  data: {
-                    name: "Bad User",
-                    email: invalidEmail,
-                    emailVerified: 12345, // Type failure
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                  },
-                });
-              });
-              // oxlint-disable-next-line
-            } catch (e) {
-              // caught error
-            }
-
-            const [users] = await db.query<[any[]]>(
-              surql`SELECT * FROM user WHERE email = ${validEmail}`,
-            );
-
-            expect(users.length).toBe(0);
-          },
-
-        "[05] Array mapping: WHERE IN operator should properly map array of strings to RecordIds":
-          async () => {
-            const u1 = await adapter.create({
-              model: "user",
-              data: {
-                name: "A",
-                email: `a-${Date.now()}@in.com`,
-                emailVerified: true,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              },
-            });
-
-            const u2 = await adapter.create({
-              model: "user",
-              data: {
-                name: "B",
-                email: `b-${Date.now()}@in.com`,
-                emailVerified: true,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              },
-            });
-
-            const results = (await adapter.findMany({
-              model: "user",
-              where: [{ field: "id", operator: "in", value: [u1.id, u2.id] }],
-            })) as any[];
-
-            expect(results.length).toBe(2);
-            const names = results.map((r) => r.name).sort();
-            expect(names).toEqual(["A", "B"]);
-          },
-
-        "[06] Native Types: should convert Surreal DateTime to JS Date via customTransformOutput":
+        "[03] Native Types: should store Surreal DateTime in DB and return JS Date to Better-Auth":
           async () => {
             const user = await adapter.create({
               model: "user",
               data: {
-                name: "u",
-                email: `u-${Date.now()}@u.com`,
+                name: "Date User",
+                email: `date-${Date.now()}@test.com`,
                 emailVerified: true,
                 createdAt: new Date(),
                 updatedAt: new Date(),
@@ -209,91 +109,16 @@ export const surrealTestSuite = (db: Surreal) => {
               },
             })) as any;
 
+            // Output to application must be a standard JS Date
             expect(session.expiresAt).toBeInstanceOf(Date);
             expect(session.expiresAt.toISOString()).toBe("2030-01-01T10:00:00.000Z");
 
+            // Raw record in SurrealDB must be a native DateTime object
             const [dbResult] = await db.query<[any[]]>(
               surql`SELECT expiresAt FROM session WHERE id = ${new StringRecordId(session.id)}`,
             );
 
             expect(dbResult[0].expiresAt).toBeInstanceOf(DateTime);
-          },
-
-        "[07] Joins (FETCH): should populate referenced record when join is requested":
-          async () => {
-            const user = await adapter.create({
-              model: "user",
-              data: {
-                name: "Join User",
-                email: `join-${Date.now()}@test.com`,
-                emailVerified: true,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              },
-            });
-
-            const session = await adapter.create({
-              model: "session",
-              data: {
-                userId: user.id,
-                token: `jtok-${Date.now()}`,
-                expiresAt: new Date(Date.now() + 10000),
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              },
-            });
-
-            const fetchedSession = (await adapter.findOne({
-              model: "session",
-              where: [{ field: "id", value: session.id }],
-              join: { user: true },
-            })) as any;
-
-            expect(fetchedSession).toBeDefined();
-            expect(fetchedSession.id).toBe(session.id);
-            expect(typeof fetchedSession.userId).toBe("string");
-            expect(typeof fetchedSession.user).toBe("object");
-            expect(fetchedSession.user.name).toBe("Join User");
-          },
-
-        "[08] Joins (FETCH) in findMany: should populate referenced records for multiple results":
-          async () => {
-            const prefix = Date.now();
-            for (let i = 1; i <= 2; i++) {
-              const u = await adapter.create({
-                model: "user",
-                data: {
-                  name: `User ${i}`,
-                  email: `many-${i}-${prefix}@t.com`,
-                  emailVerified: true,
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                },
-              });
-              await adapter.create({
-                model: "session",
-                data: {
-                  userId: u.id,
-                  token: `m-${i}-${prefix}`,
-                  expiresAt: new Date(Date.now() + 10000),
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                },
-              });
-            }
-
-            const results = (await adapter.findMany({
-              model: "session",
-              where: [{ field: "token", operator: "contains", value: String(prefix) }],
-              join: { user: true },
-            })) as any[];
-
-            expect(results.length).toBe(2);
-            for (const session of results) {
-              expect(typeof session.userId).toBe("string");
-              expect(typeof session.user).toBe("object");
-              expect(session.user.id).toBe(session.userId);
-            }
           },
       };
     });

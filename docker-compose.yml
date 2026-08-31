@@ -1,0 +1,13 @@
+services:
+  surrealdb:
+    image: surrealdb/surrealdb:latest
+    container_name: surrealdb-test
+    ports:
+      - "8000:8000"
+    command:
+      - start
+      - --user=root
+      - --pass=root
+      - --log=info
+      - memory
+    restart: unless-stopped

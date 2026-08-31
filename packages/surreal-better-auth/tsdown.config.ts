@@ -9,6 +9,8 @@ export default defineConfig({
   clean: true,
   platform: "node",
   target: "node20",
-  external: ["better-auth", "surrealdb"],
+  deps: {
+    neverBundle: ["better-auth", "surrealdb"],
+  },
   treeshake: true,
 });

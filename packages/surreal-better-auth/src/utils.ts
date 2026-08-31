@@ -1,22 +1,105 @@
-import { logger, type BetterAuthDBSchema, type JoinConfig } from "better-auth";
-import { raw, escapeIdent, type BoundQuery, RecordId, StringRecordId, surql } from "surrealdb";
-import { type RecordIdMap, type SurrealDBAdapterConfig } from "./types";
+import type { BetterAuthDBSchema, Where } from "better-auth";
+import { raw, type BoundQuery, RecordId, StringRecordId, surql, DateTime } from "surrealdb";
+import type { SurrealDBAdapterConfig } from "./types";
+
+export type GetFieldNameFn = (params: { field: string; model: string }) => string;
+
+export function unwrapResult<T = any>(rawResult: any): T {
+  if (!rawResult || !Array.isArray(rawResult) || rawResult.length === 0) {
+    return [] as any;
+  }
+  const first = rawResult[0];
+  if (first && typeof first === "object") {
+    if ("status" in first) {
+      if (first.status === "ERR") {
+        throw new Error(`[SurrealDB Error]: ${first.detail || JSON.stringify(first)}`);
+      }
+      if ("result" in first) {
+        return first.result as T;
+      }
+    }
+  }
+  return first as T;
+}
+
+export function cleanIdPart(id: string): string {
+  let clean = id.trim();
+  while (clean.startsWith("⟨") && clean.endsWith("⟩")) {
+    clean = clean.slice(1, -1);
+  }
+  return clean;
+}
 
 /**
- * Function type to resolve actual database field names from internal model field names.
+ * Deserializes database values to standard JavaScript types.
+ * Matches the official SurrealDB adapter standard: extracts `val.id` from RecordId.
  */
-type GetFieldNameFn = (params: { field: string; model: string }) => string;
+export function formatRecordIdOutput(val: any): any {
+  if (val === null || val === undefined) return val;
 
-/**
- * Converts a string or primitive value to a SurrealDB RecordId or StringRecordId.
- * Validates the table prefix against the valid tables set to prevent accidental
- * conversion of non-record strings (e.g., URLs) containing colons.
- *
- * @param value - The value to convert.
- * @param validTables - A set of valid table names in the current database.
- * @param fallbackTable - Optional table name to use if the value lacks a prefix.
- * @returns A RecordId instance or the original value.
- */
+  if (val instanceof RecordId) {
+    return typeof val.id === "string" ? cleanIdPart(val.id) : String(val.id);
+  }
+
+  if (val instanceof StringRecordId) {
+    const str = val.toString();
+    const colonIdx = str.indexOf(":");
+    return colonIdx >= 0 ? cleanIdPart(str.slice(colonIdx + 1)) : cleanIdPart(str);
+  }
+
+  if (val instanceof DateTime) {
+    return val.toDate();
+  }
+
+  if (val instanceof Date) {
+    return val;
+  }
+
+  if (val instanceof Uint8Array || (typeof Buffer !== "undefined" && Buffer.isBuffer(val))) {
+    return val;
+  }
+
+  if (Array.isArray(val)) {
+    return val.map(formatRecordIdOutput);
+  }
+
+  if (typeof val === "object") {
+    if (val.constructor && val.constructor.name !== "Object") {
+      return val;
+    }
+    const cleaned: Record<string, any> = {};
+    for (const key of Object.keys(val)) {
+      cleaned[key] = formatRecordIdOutput(val[key]);
+    }
+    return cleaned;
+  }
+
+  return val;
+}
+
+export function extractCleanId(val: any, validTables?: Set<string>): any {
+  if (val instanceof RecordId) {
+    return typeof val.id === "string" ? cleanIdPart(val.id) : String(val.id);
+  }
+
+  if (val instanceof StringRecordId) {
+    const str = val.toString();
+    const colonIdx = str.indexOf(":");
+    const rawVal = colonIdx >= 0 ? str.slice(colonIdx + 1) : str;
+    return cleanIdPart(rawVal);
+  }
+
+  if (typeof val === "string" && val.includes(":") && validTables) {
+    const colonIdx = val.indexOf(":");
+    const prefix = val.slice(0, colonIdx);
+    if (validTables.has(prefix)) {
+      return cleanIdPart(val.slice(colonIdx + 1));
+    }
+  }
+
+  return val;
+}
+
 export function toRecordId(
   value: any,
   validTables: Set<string>,
@@ -25,35 +108,26 @@ export function toRecordId(
   if (value instanceof RecordId || value instanceof StringRecordId) return value;
 
   if (typeof value === "string" && value.length > 0) {
-    const colonIndex = value.indexOf(":");
+    const clean = cleanIdPart(value);
+    const colonIndex = clean.indexOf(":");
 
     if (colonIndex > 0) {
-      const tablePrefix = value.substring(0, colonIndex);
+      const tablePrefix = clean.substring(0, colonIndex);
+      const rawId = clean.substring(colonIndex + 1);
       if (validTables.has(tablePrefix)) {
-        return new RecordId(tablePrefix, value.substring(colonIndex + 1));
+        return new RecordId(tablePrefix, cleanIdPart(rawId));
       }
       return value;
     }
 
     if (fallbackTable && colonIndex === -1 && validTables.has(fallbackTable)) {
-      return new RecordId(fallbackTable, value);
+      return new RecordId(fallbackTable, clean);
     }
   }
 
   return value;
 }
 
-/**
- * Identifies the target model for polymorphic fields or fields where metadata info might be missing.
- * Specifically handles 'accountId' for accounts and 'clientId' for OAuth models.
- *
- * @param dbModelName - The actual database table name.
- * @param field - The internal field name.
- * @param getModelName - Resolver for database table names.
- * @param schema - The Better-Auth database schema.
- * @param data - Optional data object for context-sensitive resolution.
- * @returns The target model name or null if not resolved.
- */
 export const getSpecialReferenceModel = (
   dbModelName: string,
   field: string,
@@ -84,63 +158,66 @@ export const getSpecialReferenceModel = (
   return null;
 };
 
-/**
- * Factory for creating the WHERE clause builder.
- * Handles operator mapping and automatic RecordId conversion for relational fields.
- *
- * @param getFieldName - Resolver for field names.
- * @param getFieldAttributes - Resolver for field metadata.
- * @param getModelName - Resolver for table names.
- * @param validTables - Set of valid database tables.
- * @param schema - Better-Auth DB schema.
- * @returns A function that generates a BoundQuery for WHERE clauses.
- */
 export const createWhereBuilder = (
-  getFieldName: any,
-  getFieldAttributes: any,
-  getModelName: any,
+  getFieldName: (opts: { model: string; field: string }) => string,
+  getFieldAttributes: (opts: { model: string; field: string }) => any,
+  getModelName: (model: string) => string,
   validTables: Set<string>,
   schema: BetterAuthDBSchema,
 ) => {
-  return (where: any[] | undefined | null, modelName: string) => {
+  return (where: Where[] | undefined | null, modelName: string): BoundQuery | null => {
     if (!where || where.length === 0) return null;
 
-    let query = surql``;
     const dbModelName = getModelName(modelName);
 
-    where.forEach((w, index) => {
-      if (index > 0) {
-        query.append(surql` ${raw(w.connector || "AND")} `);
-      }
-
+    const buildCondition = (w: Where): BoundQuery => {
       const dbField = getFieldName({ field: w.field, model: modelName });
       const attr = getFieldAttributes({ field: w.field, model: modelName });
       let val = w.value;
+      const isInsensitive = (w as any).mode === "insensitive";
 
       let targetModel = getSpecialReferenceModel(dbModelName, w.field, getModelName, schema);
 
-      if (!targetModel && (w.field === "id" || attr?.references)) {
+      if (
+        !targetModel &&
+        (w.field === "id" ||
+          attr?.references?.field === "id" ||
+          (attr?.references && !attr.references.field))
+      ) {
         const refModel = attr?.references?.model;
         targetModel = refModel ? getModelName(refModel) : dbModelName;
       }
 
-      if (targetModel) {
+      if (targetModel && val !== null && val !== undefined) {
         if (Array.isArray(val)) {
           val = val.map((v) => toRecordId(v, validTables, targetModel));
-        } else if (val !== undefined && val !== null) {
+        } else {
           val = toRecordId(val, validTables, targetModel);
         }
       }
 
-      const fieldRaw = raw(escapeIdent(dbField));
+      const fieldRaw = raw(dbField);
+      const op = (w.operator || "eq").toLowerCase();
+      const query = surql``;
 
-      switch (w.operator) {
+      switch (op) {
         case "eq":
-        case undefined:
-          query.append(surql`${fieldRaw} = ${val}`);
+          if (val === null || val === undefined) {
+            query.append(surql`(${fieldRaw} IS NULL OR ${fieldRaw} IS NONE)`);
+          } else if (isInsensitive && typeof val === "string") {
+            query.append(surql`string::lowercase(${fieldRaw} ?? '') = string::lowercase(${val})`);
+          } else {
+            query.append(surql`${fieldRaw} = ${val}`);
+          }
           break;
         case "ne":
-          query.append(surql`${fieldRaw} != ${val}`);
+          if (val === null || val === undefined) {
+            query.append(surql`(${fieldRaw} IS NOT NULL AND ${fieldRaw} IS NOT NONE)`);
+          } else if (isInsensitive && typeof val === "string") {
+            query.append(surql`string::lowercase(${fieldRaw} ?? '') != string::lowercase(${val})`);
+          } else {
+            query.append(surql`${fieldRaw} != ${val}`);
+          }
           break;
         case "gt":
           query.append(surql`${fieldRaw} > ${val}`);
@@ -155,366 +232,113 @@ export const createWhereBuilder = (
           query.append(surql`${fieldRaw} <= ${val}`);
           break;
         case "in":
-          query.append(surql`${fieldRaw} IN ${val}`);
+          if (isInsensitive && Array.isArray(val)) {
+            const lowerVals = val.map((v) => (typeof v === "string" ? v.toLowerCase() : v));
+            query.append(surql`string::lowercase(${fieldRaw} ?? '') IN ${lowerVals}`);
+          } else {
+            query.append(surql`${fieldRaw} IN ${val}`);
+          }
           break;
         case "not_in":
-          query.append(surql`${fieldRaw} NOT IN ${val}`);
+          if (isInsensitive && Array.isArray(val)) {
+            const lowerVals = val.map((v) => (typeof v === "string" ? v.toLowerCase() : v));
+            query.append(surql`string::lowercase(${fieldRaw} ?? '') NOT IN ${lowerVals}`);
+          } else {
+            query.append(surql`${fieldRaw} NOT IN ${val}`);
+          }
           break;
         case "contains":
-          query.append(surql`${fieldRaw} CONTAINS ${val}`);
+          if (isInsensitive && typeof val === "string") {
+            query.append(
+              surql`string::contains(string::lowercase(${fieldRaw} ?? ''), string::lowercase(${val}))`,
+            );
+          } else {
+            query.append(surql`string::contains(${fieldRaw} ?? '', ${val})`);
+          }
           break;
         case "starts_with":
-          query.append(surql`string::starts_with(${fieldRaw}, ${val})`);
+          if (isInsensitive && typeof val === "string") {
+            query.append(
+              surql`string::starts_with(string::lowercase(${fieldRaw} ?? ''), string::lowercase(${val}))`,
+            );
+          } else {
+            query.append(surql`string::starts_with(${fieldRaw} ?? '', ${val})`);
+          }
           break;
         case "ends_with":
-          query.append(surql`string::ends_with(${fieldRaw}, ${val})`);
+          if (isInsensitive && typeof val === "string") {
+            query.append(
+              surql`string::ends_with(string::lowercase(${fieldRaw} ?? ''), string::lowercase(${val}))`,
+            );
+          } else {
+            query.append(surql`string::ends_with(${fieldRaw} ?? '', ${val})`);
+          }
           break;
         default:
           throw new Error(`[SurrealDB Adapter]: Unsupported operator "${w.operator}"`);
       }
+
+      return query;
+    };
+
+    if (where.length === 1) {
+      return buildCondition(where[0]!);
+    }
+
+    const andConditions: BoundQuery[] = [];
+    const orConditions: BoundQuery[] = [];
+
+    where.forEach((w) => {
+      const cond = buildCondition(w);
+      if (w.connector === "OR") {
+        orConditions.push(cond);
+      } else {
+        andConditions.push(cond);
+      }
     });
 
-    return query;
+    const finalQuery = surql``;
+
+    const joinWithConnector = (queries: BoundQuery[], connector: string): BoundQuery => {
+      const res = surql``;
+      queries.forEach((q, idx) => {
+        if (idx > 0) res.append(surql` ${raw(connector)} `);
+        res.append(q);
+      });
+      return res;
+    };
+
+    if (andConditions.length > 0 && orConditions.length > 0) {
+      const andPart = joinWithConnector(andConditions, "AND");
+      const orPart = joinWithConnector(orConditions, "OR");
+      finalQuery.append(surql`(${andPart}) AND (${orPart})`);
+    } else if (andConditions.length > 0) {
+      finalQuery.append(joinWithConnector(andConditions, "AND"));
+    } else if (orConditions.length > 0) {
+      finalQuery.append(joinWithConnector(orConditions, "OR"));
+    }
+
+    return finalQuery;
   };
 };
 
-/**
- * Extracts field names from join configurations to build the SurrealDB FETCH clause.
- *
- * @param join - Better-Auth join configuration.
- * @param getFieldName - Resolver for field names.
- * @param model - Base model name.
- * @returns Array of field names to fetch or null.
- */
-export const buildFetchLinks = (
-  join: JoinConfig | undefined,
-  getFieldName: GetFieldNameFn,
+export function logSurrealQuery(
+  config: SurrealDBAdapterConfig | undefined,
+  method: string,
   model: string,
-): string[] | null => {
-  if (!join) return null;
-
-  const keys = Object.keys(join);
-  const recordLinks: string[] = [];
-
-  for (let i = 0; i < keys.length; i++) {
-    const config = join[keys[i]];
-    if (config && typeof config === "object" && "on" in config) {
-      recordLinks.push(getFieldName({ model, field: config.on.from }));
-    }
-  }
-
-  return recordLinks.length > 0 ? recordLinks : null;
-};
-
-/**
- * Converts null values to undefined within an object.
- * Required for SurrealDB MERGE operations to effectively remove fields
- * rather than storing null values.
- *
- * @param data - The object to transform.
- * @returns The transformed object with nulls replaced by undefined.
- */
-export function mapNullToUndefined<T extends Record<string, any>>(data: T): T {
-  const out = { ...data };
-  const keys = Object.keys(out);
-
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    if (out[key] === null) {
-      (out as any)[key] = undefined;
-    }
-  }
-
-  return out;
-}
-
-/**
- * Internal error reporting utilities for debugging purposes.
- */
-export const ERROR_HANDLERS = {
-  modelNotFound: (modelName: string, config?: SurrealDBAdapterConfig) => {
-    if (config?.debugLogs) {
-      logger.debug(
-        `[surreal-better-auth]: Model '${modelName}' not found in schema, skipping operation`,
-      );
-    }
-  },
-  fieldMappingSkipped: (rule: string, reason: string, config?: SurrealDBAdapterConfig) => {
-    if (config?.debugLogs) {
-      logger.debug(`[surreal-better-auth]: Skipping field mapping rule for '${rule}': ${reason}`);
-    }
-  },
-  unsupportedOperator: (operator: string, config?: SurrealDBAdapterConfig) => {
-    if (config?.debugLogs) {
-      logger.warn(
-        `[surreal-better-auth]: Unknown operator '${operator}', falling back to equality comparison`,
-      );
-    }
-  },
-};
-
-/**
- * Resolves the referenced model for a specific field using explicit mappings or defaults.
- *
- * @returns The referenced model name or null.
- */
-export function getReferencedModel(
-  tableName: string,
-  fieldName: string,
-  recordIdMap: RecordIdMap,
-  getDefaultModelName: (tableName: string) => string,
-  getDefaultFieldName: (opts: { model: string; field: string }) => string,
-  getModelName: (model: string) => string,
-  config?: SurrealDBAdapterConfig,
-): string | null {
-  const defaultModel = getDefaultModelName(tableName);
-  const defaultField = getDefaultFieldName({
-    model: defaultModel,
-    field: fieldName,
-  });
-
-  const referencedModel = DEFAULT_FIELD_REFERENCES[defaultField];
-  if (referencedModel) {
-    try {
-      return getModelName(referencedModel);
-      // oxlint-disable-next-line
-    } catch (error) {
-      ERROR_HANDLERS.modelNotFound(referencedModel, config);
-    }
-  }
-
-  return recordIdMap.tableSpecific[tableName]?.[fieldName] || null;
-}
-
-/**
- * Standard relational mappings used for common Better-Auth fields.
- */
-export const DEFAULT_FIELD_REFERENCES: Record<string, string> = {
-  userId: "user",
-  organizationId: "organization",
-  teamId: "team",
-  inviterId: "user",
-  activeOrganizationId: "organization",
-  activeTeamId: "team",
-};
-
-/**
- * Scans the Better-Auth schema to build a map of fields referencing other tables.
- * Used to automatically resolve RecordId types.
- *
- * @returns A populated RecordIdMap object.
- */
-export function buildRecordIdMap(
-  tables: any,
-  getModelName: (model: string) => string,
-  getFieldName: (opts: { model: string; field: string }) => string,
-): RecordIdMap {
-  const map: RecordIdMap = { tableSpecific: {} };
-  if (!tables) return map;
-
-  for (const internalModelName in tables) {
-    const tableDef = tables[internalModelName];
-    if (!tableDef?.fields) continue;
-
-    const actualTableName = getModelName(internalModelName);
-    if (!map.tableSpecific[actualTableName]) {
-      map.tableSpecific[actualTableName] = {};
-    }
-
-    for (const internalFieldName in tableDef.fields) {
-      const fieldDef = tableDef.fields[internalFieldName];
-      if (fieldDef?.references?.model) {
-        const actualFieldName = getFieldName({
-          model: internalModelName,
-          field: internalFieldName,
-        });
-        const referencedActualTableName = getModelName(fieldDef.references.model);
-        map.tableSpecific[actualTableName][actualFieldName] = referencedActualTableName;
-      }
-    }
-  }
-  return map;
-}
-
-/**
- * ANSI Escape sequences for colorized console output.
- */
-const colors = {
-  reset: "\x1b[0m",
-  bold: "\x1b[1m",
-  dim: "\x1b[90m",
-  border: "\x1b[38;5;238m",
-  fg: {
-    blue: "\x1b[34m",
-    cyan: "\x1b[36m",
-    green: "\x1b[32m",
-    yellow: "\x1b[33m",
-    purple: "\x1b[35m",
-  },
-};
-
-/**
- * Formats and outputs SurrealQL queries to the console with syntax highlighting.
- * Helps developers verify queries and bindings sent to SurrealDB.
- *
- * @param config - Adapter configuration containing logging flags.
- * @param method - The name of the adapter method being called.
- * @param model - The model name.
- * @param queryObj - The BoundQuery containing the SurQL string and bindings.
- */
-export function logSurrealQuery(config: any, method: string, model: string, queryObj: BoundQuery) {
+  queryObj: BoundQuery,
+) {
   if (!config?.debugLogs && !config?.logSurrealQL) return;
 
-  if (typeof config.debugLogs === "object" && !("isRunningAdapterTests" in config.debugLogs)) {
-    const logsMap = config.debugLogs as Record<string, boolean>;
-    if (!logsMap[method]) return;
+  if (
+    typeof config.debugLogs === "object" &&
+    !(config.debugLogs as Record<string, boolean>)[method]
+  ) {
+    return;
   }
 
-  const q = queryObj.query;
-  const b = queryObj.bindings || {};
-
-  const formatValue = (val: any): string => {
-    if (typeof val === "string") {
-      if (val.includes(":")) return `${colors.fg.cyan}${val}${colors.reset}`;
-      return `${colors.fg.green}'${val}'${colors.reset}`;
-    }
-    if (typeof val === "number" || typeof val === "boolean")
-      return `${colors.fg.yellow}${val}${colors.reset}`;
-    if (val === null) return `${colors.dim}null${colors.reset}`;
-    if (val === undefined) return `${colors.dim}undefined${colors.reset}`;
-
-    let jsonStr = "";
-    try {
-      jsonStr = JSON.stringify(val, null, 2);
-    } catch {
-      jsonStr = String(val);
-    }
-
-    return jsonStr
-      .replace(/"([^"]+)":/g, `${colors.fg.cyan}$1${colors.reset}:`)
-      .replace(/: "([^"]*)"/g, `: ${colors.fg.green}'$1'${colors.reset}`)
-      .replace(
-        /: (true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
-        `: ${colors.fg.yellow}$1${colors.reset}`,
-      );
-  };
-
-  const formatSQL = (str: string) =>
-    str
-      .replace(
-        /\b(CREATE|CONTENT|SELECT|FROM|WHERE|UPDATE|MERGE|SET|DELETE|LIMIT|ORDER BY|START|FETCH|type::record|type::thing)\b/g,
-        `${colors.fg.purple}$1${colors.reset}`,
-      )
-      .replace(/\b(rand::\w+(?:::\w+)?)\b/g, `${colors.fg.blue}$1${colors.reset}`)
-      .replace(/(\$bind__\w+)/g, `${colors.fg.yellow}$1${colors.reset}`);
-
-  let fullQuery = q;
-  const sortedKeys = Object.keys(b).sort((a, b) => b.length - a.length);
-  sortedKeys.forEach((key) => {
-    const val = b[key];
-    const displayVal = typeof val === "string" ? `'${val}'` : JSON.stringify(val);
-    fullQuery = fullQuery.replace(
-      new RegExp(`\\$${key}\\b`, "g"),
-      `${colors.fg.green}${displayVal}${colors.reset}`,
-    );
+  console.log(`[SurrealDB Debug] [${method}] [${model}]`, {
+    query: queryObj.query,
+    bindings: queryObj.bindings,
   });
-
-  let logOut = `\n${colors.border}┌── ${colors.reset}${colors.bold}SURREALDB DEBUG${colors.reset} ${colors.dim}───────────────────────────────────────${colors.reset}\n`;
-
-  const addLine = (content: string = "") => {
-    const lines = content.split("\n");
-    lines.forEach((line) => {
-      logOut += `${colors.border}│${colors.reset} ${line}\n`;
-    });
-  };
-
-  addLine(
-    `${colors.dim}Method:${colors.reset} ${colors.bold}${method}${colors.reset}  ${colors.dim}Model:${colors.reset} ${colors.fg.cyan}${model}${colors.reset}`,
-  );
-  addLine();
-  addLine(`${colors.dim}Full Query (interpolated):${colors.reset}`);
-  addLine(formatSQL(fullQuery));
-  addLine();
-  addLine(`${colors.dim}Raw SurQL:${colors.reset}`);
-  addLine(formatSQL(q));
-  addLine();
-  addLine(`${colors.dim}Bindings:${colors.reset}`);
-
-  Object.entries(b).forEach(([key, val]) => {
-    const prefix = `  ${colors.fg.yellow}${key}${colors.reset} ${colors.dim}=${colors.reset} `;
-    const cleanPrefixLength = `  ${key} = `.length;
-
-    let formattedVal = formatValue(val);
-
-    if (formattedVal.includes("\n")) {
-      const indentStr = " ".repeat(cleanPrefixLength);
-      formattedVal = formattedVal
-        .split("\n")
-        .map((l, i) => (i === 0 ? l : `${indentStr}${l}`))
-        .join("\n");
-    }
-
-    addLine(`${prefix}${formattedVal}`);
-  });
-
-  logOut += `${colors.border}└──────────────────────────────────────────────────────────────${colors.reset}\n`;
-
-  console.log(logOut);
 }
-
-/**
- * Normalizes SurrealDB results by processing the FETCH clause output.
- * Moves successfully fetched documents to their corresponding relation keys
- * and restores simple string IDs in the original foreign key fields to maintain type stability.
- * Optimized for performance by pre-calculating join meta-data.
- *
- * @param data - Single record or array of records from SurrealDB.
- * @param join - Better-Auth join configuration.
- * @param model - Internal model name.
- * @param getFieldName - Resolver for field names.
- * @returns The normalized data matching Better-Auth's relational structure.
- */
-export const mapFetchedRelations = <T extends Record<string, any>>(
-  data: T | T[] | null | undefined,
-  join: JoinConfig | undefined,
-  model: string,
-  getFieldName: GetFieldNameFn,
-): T | T[] | null | undefined => {
-  if (!data || !join) return data;
-
-  const isArray = Array.isArray(data);
-  const records = isArray ? (data as T[]) : [data as T];
-  if (records.length === 0) return data;
-
-  const joinKeys = Object.keys(join);
-  const joinMeta = [];
-  for (let i = 0; i < joinKeys.length; i++) {
-    const relName = joinKeys[i];
-    joinMeta.push({
-      relName,
-      relField: getFieldName({ model, field: (join[relName] as any).on.from }),
-    });
-  }
-
-  for (let i = 0; i < records.length; i++) {
-    const table = records[i];
-    if (!table) continue;
-
-    for (let j = 0; j < joinMeta.length; j++) {
-      const { relName, relField } = joinMeta[j];
-      const val = table[relField];
-
-      if (
-        val &&
-        typeof val === "object" &&
-        !(val instanceof RecordId) &&
-        !(val instanceof StringRecordId)
-      ) {
-        table[relName as keyof T] = val;
-        table[relField as keyof T] = (val.id?.toString() || val.id) as any;
-      }
-    }
-  }
-
-  return isArray ? records : records[0];
-};

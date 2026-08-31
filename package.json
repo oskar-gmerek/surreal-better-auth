@@ -1,22 +1,40 @@
 {
     "name": "surreal-better-auth-monorepo",
+    "description": "SurrealDB adapter for Better Auth",
+    "keywords": [
+      "adapter",
+      "auth",
+      "authentication",
+      "database",
+      "better-auth",
+      "better-auth-adapter",
+      "better-auth-surrealdb-adapter",
+      "surreal-better-auth",
+      "surrealdb-better-auth",
+      "surrealdb-better-auth-adapter",
+      "surrealdb",
+      "surrealdb-adapter",
+      "surrealdb-auth",
+      "javascript",
+      "typescript"
+    ],
     "devDependencies": {
         "@better-auth/cli": "^1.4.21",
-        "@better-auth/test-utils": "^1.5.1",
-        "@types/bun": "^1.3.10",
+        "@better-auth/test-utils": "^1.7.2",
+        "@types/bun": "^1.4.0",
         "@types/ws": "^8.18.1",
-        "better-auth": "^1.5.1",
-        "bun": "^1.3.10",
+        "better-auth": "^1.7.2",
+        "bun": "^1.4.0",
         "glob": "^13.0.6",
-        "nanoid": "^5.1.6",
-        "oxfmt": "^0.36.0",
-        "oxlint": "^1.51.0",
-        "surrealdb": "^2.0.0",
-        "tsdown": "^0.20.3",
-        "typescript": "^5.9.3",
+        "nanoid": "^6.0.1",
+        "oxfmt": "^0.65.0",
+        "oxlint": "^1.80.0",
+        "surrealdb": "^2.0.8",
+        "tsdown": "^0.22.14",
+        "typescript": "^6.0.3",
         "util": "^0.12.5",
-        "vitest": "^4.0.18",
-        "ws": "^8.19.0"
+        "vitest": "^4.1.11",
+        "ws": "^8.21.3"
     },
     "private": true,
     "scripts": {
@@ -32,7 +50,8 @@
         "release:status": "node scripts/check-release.js",
         "restart": "rm -rfv bun.lock node_modules && find . -name 'node_modules' -type d -exec rm -rfv {} + && find . -name '.svelte-kit' -type d -exec rm -rfv {} +",
         "setup": "bun install && echo '✅ Setup complete! Run: bun run release:status'",
-        "create:schema": "bun x @better-auth/cli@latest generate --config ./packages/surreal-better-auth/_auth.ts"
+        "create:schema": "bun x @better-auth/cli@latest generate --config ./packages/surreal-better-auth/_auth.ts",
+        "run:db": "docker run --rm --pull always -p 8000:8000 surrealdb/surrealdb:latest start"
     },
     "type": "module",
     "workspaces": [

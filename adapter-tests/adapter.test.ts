@@ -1,12 +1,17 @@
 import { testAdapter } from "@better-auth/test-utils/adapter";
-import { afterAll, beforeAll, describe } from "vitest";
+import {
+  authFlowTestSuite,
+  normalTestSuite,
+  caseInsensitiveTestSuite,
+  joinsTestSuite,
+  // numberIdTestSuite,
+  transactionsTestSuite,
+  uuidTestSuite,
+} from "@better-auth/test-utils/adapter";
+import { afterAll, describe } from "vitest";
 import { surrealdbAdapter } from "../packages/surreal-better-auth/src/adapter";
 import { getTestSurrealInstance } from "./surrealdb";
-import { crudTestSuite } from "./suites/crudTestSuite";
-// import { surrealTestSuite } from "./suites/surrealTestSuite";
 import { surrealTestSuite } from "./suites/surrealTestSuite";
-import { specialConfigTestSuite } from "./suites/specialConfigTestSuite";
-import { Surreal } from "surrealdb";
 
 /**
  * Main Integration Test Runner for the SurrealDB Adapter.
@@ -60,7 +65,13 @@ describe("SurrealDB Adapter Integration Tests", async () => {
               REMOVE TABLE IF EXISTS team;
               REMOVE TABLE IF EXISTS teamMember;
               REMOVE TABLE IF EXISTS user;
+              REMOVE TABLE IF EXISTS user_custom;
+              REMOVE TABLE IF EXISTS user_table;
               REMOVE TABLE IF EXISTS verification;
+              REMOVE TABLE IF EXISTS testModel;
+              REMOVE TABLE IF EXISTS one_to_one_table;
+              REMOVE TABLE IF EXISTS oneToOneTable;
+              REMOVE TABLE IF EXISTS organization;
             `);
 
         // Apply the new schema (using DEFINE TABLE ... OVERWRITE)
@@ -77,12 +88,17 @@ describe("SurrealDB Adapter Integration Tests", async () => {
      */
     // tests: [crudTestSuite(), surrealTestSuite(), specialConfigTestSuite()],
     tests: [
-      crudTestSuite(),
+      authFlowTestSuite(),
+      normalTestSuite(),
+      caseInsensitiveTestSuite(),
+      joinsTestSuite(),
+      // numberIdTestSuite(), // we do not support number IDs
+      transactionsTestSuite(),
+      uuidTestSuite(),
       async (helpers: any) => {
         const db = await getTestSurrealInstance();
         return await surrealTestSuite(db)(helpers);
       },
-      specialConfigTestSuite(),
     ],
 
     /**
@@ -101,7 +117,7 @@ describe("SurrealDB Adapter Integration Tests", async () => {
    */
   afterAll(async () => {
     const db = await getTestSurrealInstance();
-    await db.query(`REMOVE DATABASE IF EXISTS suite`);
+    // await db.query(`REMOVE DATABASE IF EXISTS suite`);
     await db.close();
   });
 });

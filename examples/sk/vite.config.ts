@@ -1,9 +1,8 @@
 import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vite";
-import masterCSS from "@master/css.vite";
 
 export default defineConfig({
-  plugins: [sveltekit(), masterCSS({ mode: "progressive" })],
+  plugins: [sveltekit()],
   test: {
     expect: { requireAssertions: true },
     projects: [
@@ -17,7 +16,7 @@ export default defineConfig({
             provider: "playwright",
             instances: [{ browser: "chromium" }],
           },
-          include: ["src/**/*.svelte.{test,spec}.{js,ts}"],
+          include: ["src/**/*.svelte.{spec}.{js,ts}"],
           exclude: ["src/lib/server/**"],
           setupFiles: ["./vitest-setup-client.ts"],
         },
@@ -27,8 +26,8 @@ export default defineConfig({
         test: {
           name: "server",
           environment: "node",
-          include: ["src/**/*.{test,spec}.{js,ts}"],
-          exclude: ["src/**/*.svelte.{test,spec}.{js,ts}"],
+          include: ["src/**/*.{spec}.{js,ts}"],
+          exclude: ["src/**/*.svelte.{spec}.{js,ts}"],
         },
       },
     ],

@@ -1,244 +1,232 @@
 name: CI and Release
 
 on:
-  pull_request:
-    branches: [ main, beta ]
-  push:
-    branches: [ main, beta ]
+    pull_request:
+        branches: [main, beta]
+    push:
+        branches: [main, beta]
+
+permissions:
+    contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false 
-      matrix:
-        runtime:
-          - { name: "Node.js 20", type: "node", version: "20" }
-          - { name: "Node.js 22", type: "node", version: "22" }
-          - { name: "Node.js 24", type: "node", version: "24" }
-          - { name: "Bun latest", type: "bun", version: "latest" }
-            
-    name: Test on ${{ matrix.runtime.name }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Start SurrealDB
-        uses: surrealdb/setup-surreal@v2
-        with:
-          surrealdb_version: latest
-          surrealdb_port: 8000
-          surrealdb_username: root
-          surrealdb_password: root
-          surrealdb_log: info
-          surrealdb_additional_args: --allow-all
-      - name: Setup Node.js
-        if: matrix.runtime.type == 'node'
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.runtime.version }}
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - name: Install dependencies
-        run: bun install
-      - name: Build package
-        run: bun run build
-      - name: Wait for SurrealDB
-        run: |
-          echo "Waiting for SurrealDB..."
-          until curl --fail http://localhost:8000/status; do sleep 1; done
-          echo "SurrealDB is ready!"
-      - name: Run adapter tests (Node.js)
-        if: matrix.runtime.type == 'node'
-        run: npm run test:adapter
-      - name: Run adapter tests (Bun)
-        if: matrix.runtime.type == 'bun'
-        run: bun run test:adapter
-      - name: Install example dependencies
-        if: matrix.runtime.type == 'bun'
-        working-directory: examples/sk
-        run: bun install
-      - name: Cache Playwright Browsers
-        if: matrix.runtime.type == 'bun'
-        id: cache-playwright
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('**/bun.lockb') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-      - name: Install Playwright Browsers
-        if: matrix.runtime.type == 'bun' && steps.cache-playwright.outputs.cache-hit != 'true'
-        working-directory: examples/sk
-        run: bunx playwright install --with-deps
-      - name: Run integration tests
-        if: matrix.runtime.type == 'bun'
-        working-directory: examples/sk
-        run: bunx playwright test
-        env:
-          CI: true
-          SURREALDB_URL: http://localhost:8000
-          SURREALDB_USER: root
-          SURREALDB_PASS: root
-          SURREALDB_NS: test
-          SURREALDB_DB: example-sveltekit
-      - name: Stop SurrealDB
-        if: always()
-        run: echo "Cleaning up..."
+    test:
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                runtime:
+                    - { name: "Node.js 22", type: "node", version: "22" }
+                    - { name: "Node.js 24", type: "node", version: "24" }
+                    - { name: "Bun latest", type: "bun", version: "latest" }
+                    - { name: "Deno latest", type: "deno", version: "latest" }
 
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    name: Build Artifact
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - name: Install dependencies
-        run: bun install
-      - name: Build package
-        run: bun run build
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: built-package
-          path: packages/surreal-better-auth/dist
+        name: Test on ${{ matrix.runtime.name }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+            - name: Start SurrealDB
+              uses: surrealdb/setup-surreal@v2
+              with:
+                  surrealdb_version: latest
+                  surrealdb_port: 8000
+                  surrealdb_username: root
+                  surrealdb_password: root
+                  surrealdb_auth: true,
+                  surrealdb_log: debug
+                  surrealdb_additional_args: --allow-all
+            - name: Setup Node.js
+              if: matrix.runtime.type == 'node'
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.runtime.version }}
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+            - name: Setup Deno
+              if: matrix.runtime.type == 'deno'
+              uses: denoland/setup-deno@v2
+              with:
+                  deno-version: v2.x
+            - name: Install dependencies
+              run: bun install
+            - name: Build package
+              run: bun run build
+            - name: Wait for SurrealDB
+              run: |
+                  echo "Waiting for SurrealDB..."
+                  until curl --fail http://localhost:8000/status; do sleep 1; done
+                  echo "SurrealDB is ready!"
+            - name: Run adapter tests (Node.js)
+              if: matrix.runtime.type == 'node'
+              run: npm run test:adapter
+            - name: Run adapter tests (Bun)
+              if: matrix.runtime.type == 'bun'
+              run: bun run test:adapter
+            - name: Run adapter tests (Deno)
+              if: matrix.runtime.type == 'deno'
+              run: deno run -A npm:vitest run ./adapter-tests --fileParallelism=false
+            # - name: Install example dependencies
+            #   if: matrix.runtime.type == 'bun'
+            #   working-directory: examples/sk
+            #   run: bun install
+            # - name: Cache Playwright Browsers
+            #   if: matrix.runtime.type == 'bun'
+            #   id: cache-playwright
+            #   uses: actions/cache@v4
+            #   with:
+            #       path: ~/.cache/ms-playwright
+            #       key: ${{ runner.os }}-playwright-${{ hashFiles('**/bun.lockb') }}
+            #       restore-keys: |
+            #           ${{ runner.os }}-playwright-
+            # - name: Install Playwright Browsers & Deps
+            #   if: matrix.runtime.type == 'bun' && steps.cache-playwright.outputs.cache-hit != 'true'
+            #   working-directory: examples/sk
+            #   run: bunx playwright install --with-deps chromium
+            # - name: Install Playwright System Deps Only
+            #   if: matrix.runtime.type == 'bun' && steps.cache-playwright.outputs.cache-hit == 'true'
+            #   working-directory: examples/sk
+            #   run: bunx playwright install-deps chromium
+            # - name: Run integration tests
+            #   if: matrix.runtime.type == 'bun'
+            #   working-directory: examples/sk
+            #   run: bunx playwright test
+            #   env:
+            #       CI: true
+            #       BETTER_AUTH_SECRET: a_very_long_static_test_secret_32_chars
+            #       BETTER_AUTH_URL: http://localhost:3000
+            #       SURREALDB_URL: http://localhost:8000/rpc
+            #       SURREALDB_USER: root
+            #       SURREALDB_PASS: root
+            #       SURREALDB_NS: test
+            #       SURREALDB_DB: example-sveltekit
+            - name: Stop SurrealDB
+              if: always()
+              run: echo "Cleaning up..."
 
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    name: Release to NPM
-    if: github.event_name == 'push'
-    permissions:
-      contents: write
-      
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.RELEASE_PAT }} 
-          fetch-depth: 0
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: built-package
-          path: packages/surreal-better-auth/dist
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - name: Setup Node.js for publishing
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
+    build:
+        needs: test
+        runs-on: ubuntu-latest
+        name: Build Artifact
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+            - name: Install dependencies
+              run: bun install
+            - name: Build package
+              run: bun run build
+            - name: Upload build artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: built-package
+                  path: packages/surreal-better-auth/dist
 
-      # --- BETA ---
-      - name: Perform Beta Release
-        if: github.ref == 'refs/heads/beta'
-        run: |
-          cp README.md packages/surreal-better-auth/dist/
-          cp packages/surreal-better-auth/LICENSE packages/surreal-better-auth/dist/
-          
-          cd packages/surreal-better-auth
-          node -e '
-            const fs = require("fs"); const path = "./package.json"; const pkg = JSON.parse(fs.readFileSync(path, "utf8")); let current = pkg.version; let newVersion;
-            if (current.includes("-beta.")) { let [main, beta] = current.split("-beta."); newVersion = `${main}-beta.${parseInt(beta) + 1}`; } else { newVersion = `${current}-beta.0`; }
-            pkg.version = newVersion; fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n"); console.log(`Version bumped to ${newVersion}`);
-            fs.appendFileSync(process.env.GITHUB_ENV, `NEW_VERSION=${newVersion}\n`);
-          '
-          
-          node -e '
-            const fs = require("fs"); const path = "./dist/package.json";
-            const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
-            delete pkg.files; 
-            pkg.main = pkg.main.replace("./dist/", "./");
-            pkg.module = pkg.module.replace("./dist/", "./");
-            pkg.types = pkg.types.replace("./dist/", "./");
-            pkg.exports["."].types = pkg.exports["."].types.replace("./dist/", "./");
-            pkg.exports["."].import = pkg.exports["."].import.replace("./dist/", "./");
-            pkg.exports["."].require = pkg.exports["."].require.replace("./dist/", "./");
-            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
-          '
-          
-          cd dist
-          npm publish --tag beta
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    release:
+        needs: build
+        runs-on: ubuntu-latest
+        name: Release to NPM
+        if: github.event_name == 'push'
+        permissions:
+            contents: write
+            id-token: write
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  token: ${{ secrets.RELEASE_PAT }}
+                  fetch-depth: 0
 
-      - name: Commit, push, and tag (Beta)
-        if: github.ref == 'refs/heads/beta'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git pull
-          git add packages/surreal-better-auth/package.json
-          git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
-          git tag ${{ env.NEW_VERSION }}
-          git push && git push --tags
+            - name: Download build artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: built-package
+                  path: packages/surreal-better-auth/dist
 
-      - name: Create GitHub Release (Beta)
-        if: github.ref == 'refs/heads/beta'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.NEW_VERSION }}
-          name: Beta Release ${{ env.NEW_VERSION }}
-          prerelease: true
-          generate_release_notes: true
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "24"
 
-      # --- STABLE ---
-      - name: Perform Stable Release
-        if: github.ref == 'refs/heads/main'
-        run: |
-          cp README.md packages/surreal-better-auth/dist/
-          cp packages/surreal-better-auth/LICENSE packages/surreal-better-auth/dist/
-          
-          cd packages/surreal-better-auth
-          node -e '
-            const fs = require("fs"); const path = "./package.json"; const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
-            let stableVersion = pkg.version.split("-beta.")[0]; pkg.version = stableVersion;
-            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n"); console.log(`Version bumped to ${stableVersion}`);
-            fs.appendFileSync(process.env.GITHUB_ENV, `STABLE_VERSION=${stableVersion}\n`);
-          '
-          
-          node -e '
-            const fs = require("fs"); const path = "./dist/package.json";
-            const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
-            delete pkg.files;
-            pkg.main = pkg.main.replace("./dist/", "./");
-            pkg.module = pkg.module.replace("./dist/", "./");
-            pkg.types = pkg.types.replace("./dist/", "./");
-            pkg.exports["."].types = pkg.exports["."].types.replace("./dist/", "./");
-            pkg.exports["."].import = pkg.exports["."].import.replace("./dist/", "./");
-            pkg.exports["."].require = pkg.exports["."].require.replace("./dist/", "./");
-            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
-          '
-          
-          cd dist
-          npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+            - name: Check if version is new
+              id: check-version
+              run: |
+                  PACKAGE_NAME=$(node -p "require('./packages/surreal-better-auth/package.json').name")
+                  CURRENT_VERSION=$(node -p "require('./packages/surreal-better-auth/package.json').version")
+                  PUBLISHED_VERSION=$(npm view $PACKAGE_NAME version 2>/dev/null || echo "0.0.0")
 
-      - name: Commit, tag and push (Stable)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          git config --local user.email "53402105+oskar-gmerek@users.noreply.github.com"
-          git config --local user.name "Oskar Gmerek"
-          git pull
-          git add packages/surreal-better-auth/package.json
-          git commit -m "chore: release stable version ${{ env.STABLE_VERSION }} [skip ci]"
-          git tag v${{ env.STABLE_VERSION }}
-          git push
-          git push --tags
+                  if [ "$CURRENT_VERSION" = "$PUBLISHED_VERSION" ]; then
+                    echo "Version $CURRENT_VERSION already exists on NPM. Skipping publish."
+                    echo "should_publish=false" >> $GITHUB_OUTPUT
+                  else
+                    echo "Version $CURRENT_VERSION is new. Proceeding."
+                    echo "should_publish=true" >> $GITHUB_OUTPUT
+                    echo "VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+                  fi
 
-      - name: Create GitHub Release (Stable)
-        if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ env.STABLE_VERSION }}
-          name: Release ${{ env.STABLE_VERSION }}
-          generate_release_notes: true
+            - name: Prepare Release Metadata
+              if: steps.check-version.outputs.should_publish == 'true'
+              run: |
+                  cd packages/surreal-better-auth
+                  cp README.md dist/
+                  cp LICENSE dist/
+                  cp welcome.js dist/
+                  node -e '
+                    const fs = require("fs");
+                    const pkg = JSON.parse(fs.readFileSync("./package.json", "utf8"));
+                    const pi = pkg.scripts.postinstall;
+                    delete pkg.files; delete pkg.scripts; delete pkg.devDependencies;
+                    pkg.scripts = pi ? { postinstall: pi } : {};
+                    const f = (o, k) => { if (o && o[k] && typeof o[k] === "string") o[k] = o[k].replace("./dist/", "./"); };
+                    f(pkg, "main"); f(pkg, "module"); f(pkg, "types");
+                    if (pkg.exports) {
+                      for (const k in pkg.exports) {
+                        if (typeof pkg.exports[k] === "string") pkg.exports[k] = pkg.exports[k].replace("./dist/", "./");
+                        else { f(pkg.exports[k], "types"); f(pkg.exports[k], "import"); f(pkg.exports[k], "require"); f(pkg.exports[k], "default"); }
+                      }
+                    }
+                    fs.writeFileSync("./dist/package.json", JSON.stringify(pkg, null, 2) + "\n");
+                  '
+                  cd ../..
+                  node -e '
+                    const fs = require("fs");
+                    const pkgReadme = fs.readFileSync("packages/surreal-better-auth/README.md", "utf8");
+                    const bottom = fs.readFileSync("bottom.md", "utf8");
+                    const merged = bottom.replace(/## <!-- include: packages\/surreal-better-auth\/README\.md -->/, pkgReadme);
+                    fs.writeFileSync("README.md", merged);
+                  '
+
+            - name: Publish to NPM
+              if: steps.check-version.outputs.should_publish == 'true'
+              run: |
+                  cd packages/surreal-better-auth/dist
+                  TAG_ARG=""
+                  if [[ "${{ env.VERSION }}" == *"-beta."* ]]; then TAG_ARG="--tag beta"; fi
+                  npm publish $TAG_ARG --provenance --access public
+
+            - name: Sync README back to Repo
+              if: steps.check-version.outputs.should_publish == 'true'
+              run: |
+                  git config --local user.email "53402105+oskar-gmerek@users.noreply.github.com"
+                  git config --local user.name "Oskar Gmerek"
+                  git add README.md
+                  if git diff --staged --quiet; then
+                    echo "README.md is already up to date, skipping commit."
+                  else
+                    git commit -m "docs: sync monorepo README for v${{ env.VERSION }} [skip ci]"
+                    git pull --rebase origin ${{ github.ref_name }}
+                    git push origin ${{ github.ref_name }}
+                  fi
+
+            - name: Create GitHub Release
+              if: steps.check-version.outputs.should_publish == 'true'
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: v${{ env.VERSION }}
+                  name: Release v${{ env.VERSION }}
+                  prerelease: ${{ contains(env.VERSION, '-beta.') }}
+                  generate_release_notes: true

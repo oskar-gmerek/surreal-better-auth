@@ -85,18 +85,8 @@ test.describe("Complete Authentication and Organization Flow", () => {
 
   test("Step 9: Invite users to organization", async ({ page }) => {
     await TestHelpers.loginUser(page, testUser.email, testUser.password);
-    await TestHelpers.inviteUserToOrganization(
-      page,
-      newOrg.slug,
-      member1User.email,
-      "member",
-    );
-    await TestHelpers.inviteUserToOrganization(
-      page,
-      newOrg.slug,
-      standalone1User.email,
-      "member",
-    );
+    await TestHelpers.inviteUserToOrganization(page, newOrg.slug, member1User.email, "member");
+    await TestHelpers.inviteUserToOrganization(page, newOrg.slug, standalone1User.email, "member");
   });
 
   test("Step 10-11: Member1 accepts invitation", async ({ page }) => {
@@ -112,20 +102,14 @@ test.describe("Complete Authentication and Organization Flow", () => {
 
   test("Step 13: Verify team was created in database", async ({ page }) => {
     const db = await TestHelpers.getDbConnection();
-    const teamResult = await db.query<[any[]]>(
-      `SELECT * FROM team WHERE name = '${newTeam.name}'`,
-    );
+    const teamResult = await db.query<[any[]]>(`SELECT * FROM team WHERE name = '${newTeam.name}'`);
     await db.close();
 
     expect(teamResult[0]).toHaveLength(1);
   });
 
   test("Step 14: Standalone1 accepts invitation", async ({ page }) => {
-    await TestHelpers.loginUser(
-      page,
-      standalone1User.email,
-      standalone1User.password,
-    );
+    await TestHelpers.loginUser(page, standalone1User.email, standalone1User.password);
     await TestHelpers.acceptInvitationForUser(page, standalone1User.email);
   });
 });

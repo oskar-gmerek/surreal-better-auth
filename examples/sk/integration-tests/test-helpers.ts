@@ -95,9 +95,7 @@ export class TestHelpers {
 
     while (attempts < maxAttempts) {
       try {
-        const response = await page.request.get(
-          "http://localhost:3000/api/test/verification-url",
-        );
+        const response = await page.request.get("http://localhost:3000/api/test/verification-url");
         const data = await response.json();
 
         if (data.url) {
@@ -118,9 +116,7 @@ export class TestHelpers {
     await page.goto("/profile");
     await expect(page.locator("h1")).toContainText("Profile");
 
-    await page.request.delete(
-      "http://localhost:3000/api/test/verification-url",
-    );
+    await page.request.delete("http://localhost:3000/api/test/verification-url");
     await page.click('button:has-text("Send Verification Email")');
 
     const verificationUrl = await TestHelpers.extractVerificationUrl(page);
@@ -155,9 +151,7 @@ export class TestHelpers {
       await orgLink.click();
       await page.waitForTimeout(1000);
     } else {
-      throw new Error(
-        `Organization ${name} was not found in the organizations list`,
-      );
+      throw new Error(`Organization ${name} was not found in the organizations list`);
     }
 
     return { name, slug };
@@ -220,9 +214,7 @@ export class TestHelpers {
     });
 
     // Click "Manage Members" button (use first one)
-    const manageMembersButton = page
-      .locator(`a[href="/org/manage/${orgSlug}/members"]`)
-      .first();
+    const manageMembersButton = page.locator(`a[href="/org/manage/${orgSlug}/members"]`).first();
     await expect(manageMembersButton).toBeVisible({ timeout: 10000 });
     await manageMembersButton.click();
     await page.waitForTimeout(3000);
@@ -245,9 +237,7 @@ export class TestHelpers {
     await page.selectOption('select#invite-role[name="role"]', role);
 
     // Click "Send Invitation" button
-    const sendButton = page.locator(
-      'button[type="submit"]:has-text("Send Invitation")',
-    );
+    const sendButton = page.locator('button[type="submit"]:has-text("Send Invitation")');
     await sendButton.click();
 
     // Wait for either success or error message
@@ -273,9 +263,7 @@ export class TestHelpers {
     const acceptButton = page.locator('button:has-text("Accept")').first();
 
     if (await acceptButton.isVisible({ timeout: 5000 })) {
-      const invitationsBefore = await page
-        .locator('button:has-text("Accept")')
-        .count();
+      const invitationsBefore = await page.locator('button:has-text("Accept")').count();
       await acceptButton.click();
 
       try {
@@ -284,9 +272,7 @@ export class TestHelpers {
         });
       } catch {
         await page.waitForTimeout(2000);
-        const invitationsAfter = await page
-          .locator('button:has-text("Accept")')
-          .count();
+        const invitationsAfter = await page.locator('button:has-text("Accept")').count();
         if (invitationsAfter < invitationsBefore) {
           return;
         }
@@ -305,9 +291,7 @@ export class TestHelpers {
   static async verifyUserInDatabase(email: string, shouldExist = true) {
     const db = await TestHelpers.getDbConnection();
 
-    const result = await db.query<[any[]]>(
-      `SELECT * FROM user WHERE email = '${email}'`,
-    );
+    const result = await db.query<[any[]]>(`SELECT * FROM user WHERE email = '${email}'`);
     await db.close();
 
     if (shouldExist) {
@@ -320,9 +304,7 @@ export class TestHelpers {
 
   static async verifyOrganizationInDatabase(slug: string, shouldExist = true) {
     const db = await TestHelpers.getDbConnection();
-    const result = await db.query<[any[]]>(
-      `SELECT * FROM business WHERE slug = '${slug}'`,
-    );
+    const result = await db.query<[any[]]>(`SELECT * FROM business WHERE slug = '${slug}'`);
 
     if (shouldExist) {
       expect(result[0]).toHaveLength(1);
@@ -334,11 +316,7 @@ export class TestHelpers {
     return result[0][0];
   }
 
-  static async verifyMembershipInDatabase(
-    userId: string,
-    orgId: string,
-    expectedRole?: string,
-  ) {
+  static async verifyMembershipInDatabase(userId: string, orgId: string, expectedRole?: string) {
     const db = await TestHelpers.getDbConnection();
     const result = await db.query<[any[]]>(
       `SELECT * FROM member WHERE userId = '${userId}' AND organizationId = '${orgId}'`,

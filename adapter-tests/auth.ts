@@ -1,17 +1,26 @@
+// @ts-nocheck
+// oxlint-disable
 import { betterAuth } from "better-auth";
 import { openAPI, organization, username } from "better-auth/plugins";
-import { surrealdbAdapter } from "surreal-better-auth";
-import { Surreal } from "surrealdb";
-import { WebSocket as NodeWebSocket } from "ws";
+import { surrealdbAdapter } from "../packages/surreal-better-auth/dist/index.mjs";
+import { getTestSurrealInstance } from "./surrealdb";
+import { testUtils } from "better-auth/plugins";
 
-const db = new Surreal({
-  websocketImpl: (globalThis.WebSocket || NodeWebSocket) as any,
-});
-await db.connect("ws://127.0.0.1:8000/rpc");
-await db.signin({ username: "root", password: "root" });
-await db.use({ namespace: "test", database: "example-sveltekit" });
+const db = await getTestSurrealInstance();
+
 export const auth = betterAuth({
+  experimental: {
+    joins: true,
+  },
+
+  database: surrealdbAdapter(db, {
+    idGenerator: "ULID",
+    logSurrealQL: true,
+    usePlural: false,
+  }),
+
   plugins: [
+    testUtils(),
     username(),
     openAPI({
       path: "/openapi",
@@ -37,6 +46,16 @@ export const auth = betterAuth({
         enabled: true,
         maximumTeams: 10,
         allowRemovingAllTeams: false,
+      },
+      user: {
+        fields: {
+          email: "email_address", // Maps internal 'email' to 'email_address' in DB
+        },
+      },
+      advanced: {
+        database: {
+          generateId: () => "better-auth-generated-id",
+        },
       },
       schema: {
         organization: {
@@ -65,12 +84,6 @@ export const auth = betterAuth({
     }),
   ],
   secret: "surreal-better-auth-test",
-  database: surrealdbAdapter(db, {
-    idGenerator: "guid",
-    logSurrealQL: true,
-    debugLogs: true,
-    usePlural: false,
-  }),
   user: {
     changeEmail: {
       enabled: true,

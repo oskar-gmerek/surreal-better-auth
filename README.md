@@ -1,277 +1,145 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero.webp?raw=true">
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero-white.webp?raw=true">
-    <img alt="surreal-better-auth banner" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/packages/surreal-better-auth/hero.webp?raw=true">
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/hero.webp?raw=true">
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/hero-white.webp?raw=true">
+    <img alt="surrealdb better auth adapter github repo banner" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/hero.webp?raw=true">
   </picture>
 </p>
 
-<h1 style="margin-top:40px;"> 🔐 SurrealDB Adapter for Better Auth </h1>
+<h1 style="margin-top:40px;display:flex;align-content:center;"> 
 
-![GitHub Created At](https://img.shields.io/github/created-at/oskar-gmerek/surreal-better-auth?style=for-the-badge&color=%233ca916)
-![NPM Last Update](https://img.shields.io/npm/last-update/surreal-better-auth?style=for-the-badge&color=%233ca916)
-![NPM Version](https://img.shields.io/npm/v/surreal-better-auth?style=for-the-badge&color=%233ca916)
-![NPM Unpacked Size](https://img.shields.io/npm/unpacked-size/surreal-better-auth?style=for-the-badge&color=%233ca916)
-![NPM Downloads](https://img.shields.io/npm/dy/surreal-better-auth?style=for-the-badge&color=%233ca916)
-![NPM License](https://img.shields.io/npm/l/surreal-better-auth?style=for-the-badge&color=%233ca916)
-[![Sponsor](https://img.shields.io/badge/sponsor-💖-ff69b4?style=for-the-badge&color=%23ffbdbd)](https://github.com/sponsors/oskar-gmerek)
+# <img width="38" height="38" alt="surrealdb better auth adapter" align="center" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/atom.png?raw=true" /> SurrealDB Adapter for Better Auth </h1>
 
-**The unofficial [SurrealDB](https://app.surrealdb.com/referral?code=4pn5aba943lpbn8l) adapter for [better-auth](https://better-auth.com)** - bringing the power of the multi-model database to your authentication system.
+[![NPM Version](https://img.shields.io/npm/v/surreal-better-auth?style=for-the-badge&color=%233ca916)](https://www.npmjs.com/package/surreal-better-auth)[![NPM Downloads](https://img.shields.io/npm/dy/surreal-better-auth?style=for-the-badge&color=%233ca916&label=NPMX%20STATS)](https://npmx.dev/package/surreal-better-auth)![NPM Unpacked Size](https://img.shields.io/npm/unpacked-size/surreal-better-auth?style=for-the-badge&color=%233ca916)
+![GitHub Created At](https://img.shields.io/github/created-at/oskar-gmerek/surreal-better-auth?style=for-the-badge&color=%233ca916)![NPM Last Update](https://img.shields.io/npm/last-update/surreal-better-auth?style=for-the-badge&color=%233ca916)
+![NPM License](https://img.shields.io/npm/l/surreal-better-auth?style=for-the-badge&color=%233ca916)[![Sponsor](https://img.shields.io/badge/sponsor-💖-ff69b4?style=for-the-badge&color=%23ffbdbd)](https://github.com/sponsors/oskar-gmerek)![Maintenance](https://img.shields.io/maintenance/active/2030?style=for-the-badge&color=%233ca916&link=https%3A%2F%2Fnpmx.dev%2Fpackage%2Fsurreal-better-auth)
 
-This adapter seamlessly integrates SurrealDB's advanced querying capabilities with better-auth's comprehensive authentication features, giving you a robust, scalable, and developer-friendly auth solution.
 
-> [!NOTE]  
->  🎁 **New to SurrealDB?** [Sign up with our referral link](https://app.surrealdb.com/referral?code=4pn5aba943lpbn8l) and get **free cloud hosting** plus a **special welcome discount** to kickstart your project!
+**The most reliable bridge between [SurrealDB](https://surrealdb.com) and [Better Auth](https://better-auth.com).**
 
----
+This adapter is built to leverage the best of both worlds: SurrealDB's multi-model power and Better Auth's flexible authentication lifecycle. It is designed with a focus on security, efficiency, and zero-compromise integration.
 
-## ✨ Features
-
-- 🚀 **Full better-auth compatibility** - Works with all better-auth features and plugins
-- 🔄 **Optimized for SurrealDB** - Uses direct record operations for maximum performance
-- 🎯 **Smart record links** - Uses record links instead of raw string wherever possible
-- 📋 **Schema generation support** - Works with Better Auth CLI, include support for official and unofficial plugins
-- 🔍 **Generating Indexes** - Creates necessary database indexes out of the box
-- 🆔 **Flexible ID formats** - Supports multiple ID generation strategies, full flexibility
-- 🌐 **Multi-format support** - ESM and CommonJS builds included
-- ⚡ **Lightweight** - Optimized bundle size
-- 📦 **No extra bloat** - This is a pure adapter. It has no direct dependencies and uses the `better-auth` and `surrealdb` you've already installed, giving you full control.
+> [!TIP]
+> 🚀 **Get your database running in seconds for free!** Need a managed SurrealDB instance? [Sign up through our referral link](https://app.surrealdb.com/referral?code=4pn5aba943lpbn8l) to get **free cloud hosting credits** and instant access to a high-performance database. It's a great way to support this project while starting yours at no cost!
 
 ---
 
-## ⭐ Show Your Support
+## <img width="32" height="32" align="center" alt="surrealdb better auth - why this adapter" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/question.png?raw=true" /> Why this adapter?
 
-If this adapter helps your project, please consider:
+Built with real-world scenarios in mind, this adapter goes beyond simple CRUD operations to ensure a seamless developer experience:
 
-- ⭐ **Starring the project** - It helps others discover this adapter
-  [![GitHub stars](https://img.shields.io/github/stars/oskar-gmerek/surreal-better-auth?style=social)](https://github.com/oskar-gmerek/surreal-better-auth)
-- 💖 **[Sponsoring the development](https://github.com/sponsors/oskar-gmerek)** - Even small contributions help maintain and improve the project
-  [![Sponsor](https://img.shields.io/badge/sponsor-💖-ff69b4)](https://github.com/sponsors/oskar-gmerek)
-
-Your support helps us maintain and improve this adapter for the entire community.
-
----
-
-## 📋 Requirements
-
-- **Node.js**: >= 20.0.0 or **Bun**: >= 1.2.0
-- **better-auth**: ^1.3.7
-- **surrealdb**: ^1.3.2
+- **Best of Both Worlds:** Merges SurrealDB’s unique data structures with Better Auth's comprehensive ecosystem.
+- **Production Ready:** Handles complex edge cases, such as polymorphic `accountId` mapping (Records vs. Strings), ensuring your schema stays valid.
+- **Unintrusive:** We don't take over your database instance. Managing the connection and SurrealDB client remains entirely in your hands.
+- **Fully Compatible:** Built to match the behavior of official adapters while providing community-driven optimizations.
+- **CLI Integrated:** Full support for Better Auth CLI schema generation.
 
 ---
 
-## 🚀 Installation
+## <img width="32" height="32" align="center"  alt="surrealdb better auth adapter key features" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/crown.png?raw=true" /> Key Features
+
+- **Secure Execution:** Powered by `surql` tagged templates for safe, parameterized queries.
+- **Polymorphic Intelligence:** Smartly distinguishes between native `RecordId` (Credentials) and `string` (OAuth) for the `accountId` field.
+- **Structural Integrity:** Uses native SurrealDB `RecordId` for relations wherever possible.
+- **Atomic Transactions:** Fully compatible with SurrealDB SDK's transaction lifecycle.
+- **CLI Schema Support:** Generate your entire SurrealQL schema with a single command.
+- **Developer Experience:** Optional, colorized console logs for every SurrealQL query sent to the DB.
+
+---
+
+## <img width="32" height="32" align="center" alt="surrealdb better auth adapter requirements" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/requirements.png?raw=true" />  Requirements
+
+- **Bun**: >= 1.3.10 (or **Node.js**: >= 22.0.0)
+- **Better Auth**: ^1.7.2
+- **SurrealDB JS SDK**: ^2.0.8
+- **SurrealDB Server**: v3.0.0+
+
+---
+
+## <img width="32" height="32" align="center" alt="surrealdb better auth quick start" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/quick.png?raw=true" />  Quick Start
+
+### 1. Installation
 
 ```bash
 bun add surreal-better-auth
 ```
-
+*Other package managers:*
 ```bash
-# Using other package managers
 npm install surreal-better-auth
-yarn add surreal-better-auth
 pnpm add surreal-better-auth
+yarn add surreal-better-auth
 ```
 
----
-
-## ⚙️ Configuration
-
-### Adapter Options
-
-| Option           | Type                                                                                                                                                   | Default     | Description                                         |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- | --------------------------------------------------- |
-| `debugLogs`      | `boolean`                                                                                                                                              | `false`     | Enable detailed logging for debugging               |
-| `idGenerator`    | `sdk.UUIDv4` \| `sdk.UUIDv7` \| `surreal` \| `surreal.ULID` \| `surreal.UUID` \| `surreal.UUIDv4` \| `surreal.UUIDv7` \| `surreal.guid` \| `undefined` | `undefined` | ID generation strategy (see ID Configuration below) |
-| `usePlural`      | `boolean`                                                                                                                                              | `false`     | Use plural table names (e.g., `users` vs `user`)    |
-| `allowPassingId` | `boolean`                                                                                                                                              | `false`     | Allow passing custom IDs when creating records      |
-
-### ID Configuration Options
-
-You can configure ID generation in two ways:
-
-#### 1. Via Adapter Configuration
-
-| `idGenerator` Value | Generated By | Description                                                                  |
-| ------------------- | ------------ | ---------------------------------------------------------------------------- |
-| `"sdk.UUIDv4"`      | Better Auth  | Better Auth generates UUID via SurrealDB JS SDK function `Uuid.v4()`         |
-| `"sdk.UUIDv7"`      | Better Auth  | Better Auth generates UUID via SurrealDB JS SDK function `Uuid.v7()`         |
-| `"surreal"`         | Database     | SurrealDB generates `default` SurrealDB ID                                   |
-| `"surreal.guid"`    | Database     | SurrealDB generates 20 digit alphanumeric `GUID`                             |
-| `"surreal.ULID"`    | Database     | SurrealDB generates `ULID`                                                   |
-| `"surreal.UUID"`    | Database     | SurrealDB generates default version `UUID` (currently v7)                    |
-| `"surreal.UUIDv4"`  | Database     | SurrealDB generates `UUID v4` (random-based, most common)                    |
-| `"surreal.UUIDv7"`  | Database     | SurrealDB generates `UUID v7` (time-based, sortable)                         |
-| `undefined`         | Better Auth  | Better Auth generates ID (`default`, or generated via `generateId` function) |
-
-#### 2. Via Better-Auth Advanced Configuration
-
-```typescript
-// lib/auth.ts
-export const auth = betterAuth({
-  database: surrealAdapter(db, {
-    idGenerator: "surreal.UUIDv4", // This will be ignored, when generateId is provided!
-  }),
-  advanced: {
-    database: {
-      generateId() {
-        return "custom_" + Math.random().toString(36).substr(2, 9);
-      },
-    },
-  },
-});
-```
-
-### ID Generation Precedence
-
-The ID generation follows this priority order:
-
-1. **`advanced.database.generateId()`** - Highest priority, overrides everything
-2. **`idGenerator`** - Used only if `generateId()` is not defined
-3. **Custom ID from data** - Used if `allowPassingId` is `true` and ID is provided in the data
-4. **Better Auth default** - Used if `allowPassingId` is `true` and ID is NOT provided in the data
-5. **Database default ID** - Used as fallback when all above conditions are not met, database generates default ID (same as setting `idGenerator: 'surreal'`)
-
----
-
-## 🏃‍♂️ Quick Start
-
-### 1. Set up your SurrealDB connection
-
-```typescript
-// lib/db.ts
-import Surreal from "surrealdb";
-
-const db = new Surreal();
-await db.connect("ws://localhost:8000");
-await db.use({ namespace: "production", database: "myapp" });
-
-export { db };
-```
-
-### 2. Configure better-auth with the SurrealDB adapter
-
-```typescript
-// lib/auth.ts
-import { betterAuth } from "better-auth";
-import { surrealAdapter } from "surreal-better-auth";
-import { db } from "./db";
-
-export const auth = betterAuth({
-  database: surrealAdapter(db),
-  emailAndPassword: {
-    enabled: true,
-  },
-  socialProviders: {
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-    },
-  },
-});
-```
-
-### 3. Use in your application
-
-Example for [SvelteKit](https://svelte.dev/)
-
-```typescript
-// src/hooks.server.ts
-import { auth } from "$lib/auth";
-import { svelteKitHandler } from "better-auth/svelte-kit";
-import { building } from "$app/environment";
-
-export const handle: Handle = async ({ event, resolve }) => {
-  return svelteKitHandler({ event, resolve, auth, building });
-};
-```
-
-```typescript
-// src/lib/auth-client.ts
-import { createAuthClient } from "better-auth/client";
-
-export const authClient = createAuthClient({
-  baseURL: "http://localhost:5173", // Your app URL
-});
-```
-
-```typescript
-// src/routes/+page.svelte
-<script lang="ts">
-  import { authClient } from "$lib/client";
-  const session = authClient.useSession();
-</script>
-
-    <div>
-      {#if $session.data}
-        <div>
-          <p>
-            {$session?.data?.user.name}
-          </p>
-          <button
-            onclick={async () => {
-              await authClient.signOut();
-            }}
-          >
-            Sign Out
-          </button>
-        </div>
-      {:else}
-        <button
-          onclick={async () => {
-            await authClient.signIn.social({
-              provider: "github",
-            });
-          }}
-        >
-          Continue with GitHub
-        </button>
-      {/if}
-    </div>
-```
-
----
-
-## 🔧 Advanced Configuration
+### 2. Configure Better Auth
 
 ```typescript
 // lib/auth.ts
 import { betterAuth } from "better-auth";
 import { surrealdbAdapter } from "surreal-better-auth";
-import { db } from "./db";
+import { db } from "./db"; // Your SurrealDB client instance
 
 export const auth = betterAuth({
+  // Whenever possible, always prefer ws over http for surrealdb instances.
   database: surrealdbAdapter(db, {
-    // Enable debug logging
-    debugLogs: true,
-    // Let SurrealDB generate ULID
-    idGenerator: "surreal.ULID",
-    // Use singular table names
-    usePlural: false,
-    // Allow passing custom IDs
-    allowPassingId: true,
+    // ID strategy: "ULID", "UUIDv4", "UUIDv7", or "guid"
+    idGenerator: "guid",
+   
+   // Schema mode: "schemaless" or "schemafull", Default: "schemafull"
+   schemaMode: "schemaless", 
+    
+    // Use plural table names (e.g., "users") if required by your schema
+    usePlural: false,      
+    
+    // Enable colorized query logging for easier debugging
+    logSurrealQL: true   
+    
   }),
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: true,
-  },
-  socialProviders: {
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-    },
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    },
-  },
-  plugins: [
-    // Add any better-auth plugins here and configure them as usual.
-  ],
+  // The rest of better-auth configuration
+  emailAndPassword: { enabled: true }
+  // ...
 });
 ```
 
-## 🧪 Development & Testing
+### 3. Generate & Import Schema
+
+Use the Better Auth CLI to generate your SurrealQL definitions:
+
+```bash
+bunx @better-auth/cli generate --output schema.surql --config src/lib/server/auth.ts
+```
+
+- When prompted, save the output as `schema.surql` in your project root.
+- Import the schema into your SurrealDB instance:
+  ```bash
+  surreal import --conn http://localhost:8000 --user root --pass topSecretPassword --ns project --db auth schema.surql
+  ```
+  *Note: You can also use **Surreal Studio** or any other method to import the generated schema.*
+
+### 4. Support development & maintenance
+  - **Star the project** on [GitHub](https://github.com/oskar-gmerek/surreal-better-auth)
+  - **[Sponsor the development](https://github.com/sponsors/oskar-gmerek)** to help keep the project maintained. You will also get a banner on this repository.
+---
+
+## <img width="32" height="32" align="center" alt="surrealdb better auth best practices" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/brain.png?raw=true" /> Best Practices & Architecture
+
+### Database Isolation
+For better security and organization, we recommend isolating auth data into a dedicated database within your namespace:
+- **Namespace:** `my_project`
+- **Database:** `auth` (separate from your `main` business logic database)
+
+### Row-Level Security (RLS)
+To implement native SurrealDB Row-Level Security based on the authenticated user, use the **Better Auth JWT Plugin**. This enables you to pass the authentication context directly to SurrealDB via tokens, allowing you to define powerful `PERMISSIONS` on your tables.
+
+---
+
+## <img width="32" height="32" align="center" alt="better auth surrealdb adapter development support" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/star.png?raw=true" /> Show Your Support
+
+If this adapter helps your project, please consider:
+- ⭐ **Starring the project** on [GitHub](https://github.com/oskar-gmerek/surreal-better-auth)
+- 💖 **[Sponsoring the development](https://github.com/sponsors/oskar-gmerek)** to help keep the project maintained.
+
+
+## <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/pullrequest.png?raw=true" /> Development & Testing
 
 This monorepo includes comprehensive testing to ensure the adapter works reliably:
 
@@ -297,13 +165,13 @@ bun run test:all
 bun run dev
 ```
 
-## 📄 Adapter License
+## <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/rules.png?raw=true" /> Adapter License
 
 `surreal-better-auth` package - MIT License - see [LICENSE](./packages/surreal-better-auth/LICENSE) for details.
 
 ---
 
-## 🔗 Links
+## <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/external.png?raw=true" /> Links
 
 - 📖 [better-auth Documentation](https://www.better-auth.com/docs/installation)
 - 🗄️ [SurrealDB Documentation](https://surrealdb.com/docs/surrealdb)
@@ -315,8 +183,6 @@ bun run dev
 
 <div align="center">
 
-**Made with ❤️ for the SurrealDB and Better Auth communities**
-
-[⭐ Star this project](https://github.com/oskar-gmerek/surreal-better-auth) • [🐛 Report Issues](https://github.com/oskar-gmerek/surreal-better-auth/issues) • [💡 Request Features](https://github.com/oskar-gmerek/surreal-better-auth/issues/new)
+**Made with <img width="32" height="32" align="center"  alt="Image" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/heart.png?raw=true" /> for the SurrealDB and Better Auth communities**
 
 </div>

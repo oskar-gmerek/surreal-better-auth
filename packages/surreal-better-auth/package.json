@@ -1,13 +1,37 @@
 {
   "name": "surreal-better-auth",
-  "description": "SurrealDB adapter for Better Auth",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "author": {
     "name": "Oskar Gmerek",
     "url": "https://oskargmerek.com",
-    "email": "oskar.gmerek@neetrio.com",
+    "email": "oskar.gmerek+github@neetrio.com",
     "github": "https://github.com/oskar-gmerek"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oskar-gmerek/surreal-better-auth.git"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "peerDependencies": {
+    "better-auth": "^1.7.2",
+    "surrealdb": "^2.0.8"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "description": "SurrealDB adapter for Better Auth",
+  "engines": {
+    "node": ">=22.0.0",
+    "bun": ">=1.3.10"
+  },
+  "files": [
+    "dist",
+    "welcome.js"
+  ],
   "keywords": [
     "adapter",
     "auth",
@@ -15,54 +39,22 @@
     "database",
     "better-auth",
     "better-auth-adapter",
+    "better-auth-surrealdb-adapter",
     "surreal-better-auth",
     "surrealdb-better-auth",
+    "surrealdb-better-auth-adapter",
     "surrealdb",
     "surrealdb-adapter",
     "surrealdb-auth",
     "javascript",
     "typescript"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/oskar-gmerek/surreal-better-auth.git"
-  },
   "license": "MIT",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "engines": {
-    "node": ">=20.0.0",
-    "bun": ">=1.2.0"
-  },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "test": "bun run build && vitest run tests/",
-    "test:unit": "bun run build && vitest run tests/unit/",
-    "test:integration": "bun run build && vitest run tests/integration/",
-    "test:plugins": "vitest run tests/plugins/"
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "postinstall": "node welcome.js"
   },
-  "peerDependencies": {
-    "better-auth": "^1.3.7",
-    "surrealdb": "^1.3.2"
-  },
-  "devDependencies": {
-    "@better-auth/cli": "1.3.7",
-    "@types/node": "24.3.0",
-    "tsup": "8.5.0",
-    "typescript": "5.9.2",
-    "vitest": "3.2.4"
-  },
-  "type": "module"
+  "type": "module",
+  "types": "./dist/index.d.mts"
 }

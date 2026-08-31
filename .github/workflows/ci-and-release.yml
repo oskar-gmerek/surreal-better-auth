@@ -13,7 +13,6 @@ jobs:
             fail-fast: false
             matrix:
                 runtime:
-                    - { name: "Node.js 20", type: "node", version: "20" }
                     - { name: "Node.js 22", type: "node", version: "22" }
                     - { name: "Node.js 24", type: "node", version: "24" }
                     - { name: "Bun latest", type: "bun", version: "latest" }

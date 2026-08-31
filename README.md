@@ -49,7 +49,7 @@ Built with real-world scenarios in mind, this adapter goes beyond simple CRUD op
 
 ## <img width="32" height="32" align="center" alt="surrealdb better auth requirements" src="https://github.com/oskar-gmerek/surreal-better-auth/blob/beta/assets/requirements.png?raw=true" />  Requirements
 
-- **Bun**: >= 1.3.10 (or **Node.js**: >= 20.0.0)
+- **Bun**: >= 1.3.10 (or **Node.js**: >= 22.0.0)
 - **Better Auth**: ^1.7.2
 - **SurrealDB JS SDK**: ^2.0.8
 - **SurrealDB Server**: v3.0.0+

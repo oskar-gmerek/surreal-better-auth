@@ -56,5 +56,8 @@
     "postinstall": "node welcome.js"
   },
   "type": "module",
-  "types": "./dist/index.d.mts"
+  "types": "./dist/index.d.mts",
+  "devDependencies": {
+    "unrun": "^0.3.1"
+  }
 }

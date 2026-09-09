@@ -98,38 +98,6 @@ export function generateSchema(params: GenerateSchemaParams): GenerateSchemaResu
   ): { type: string; isFlexible: boolean } {
     let resolvedBaseType: string | null = null;
 
-    // Special polymorphic case: account.accountId
-    try {
-      const accountModelName = getModelName("account");
-      const userModelName = getModelName("user");
-      const accountIdFieldName = getFieldName({
-        model: "account",
-        field: "accountId",
-      });
-
-      if (tableName === accountModelName && fieldName === accountIdFieldName) {
-        resolvedBaseType = `record<${userModelName}> | string`;
-      }
-    } catch {
-      // Model not in schema, continue
-    }
-
-    // Special OAuth Client reference cases
-    try {
-      const oauthAppModelName = getModelName("oauthApplication");
-      const accessTokenModelName = getModelName("oauthAccessToken");
-      const consentModelName = getModelName("oauthConsent");
-
-      if (
-        (tableName === accessTokenModelName || tableName === consentModelName) &&
-        fieldName === "clientId"
-      ) {
-        resolvedBaseType = `record<${oauthAppModelName}> | string`;
-      }
-    } catch {
-      // OAuth models not in schema, continue
-    }
-
     // Standard relational reference checking (foreign keys -> record<target_table>)
     if (!resolvedBaseType) {
       const referencedModel = getReferencedModel(tableName, fieldName);

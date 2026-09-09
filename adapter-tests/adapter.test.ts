@@ -10,7 +10,11 @@ import {
 } from "@better-auth/test-utils/adapter";
 import { afterAll, describe } from "vitest";
 import { surrealdbAdapter } from "../packages/surreal-better-auth/src/adapter";
-import { getTestSurrealInstance } from "./surrealdb";
+import {
+  getTestSurrealInstance,
+  getTestBootstrapInstance,
+  closeTestSurrealInstance,
+} from "./surrealdb";
 import { surrealTestSuite } from "./suites/surrealTestSuite";
 
 /**
@@ -19,6 +23,7 @@ import { surrealTestSuite } from "./suites/surrealTestSuite";
  * SurrealDB-specific edge case tests.
  */
 describe("SurrealDB Adapter Integration Tests", async () => {
+  afterAll(closeTestSurrealInstance);
   const { execute } = await testAdapter({
     /**
      * Adapter Factory Wrapper.
@@ -46,7 +51,7 @@ describe("SurrealDB Adapter Integration Tests", async () => {
     },
 
     runMigrations: async (options) => {
-      const db = await getTestSurrealInstance();
+      const db = await getTestBootstrapInstance();
       // Create a temporary instance to access the createSchema method with current options
       const tempAdapter = surrealdbAdapter(db, { idGenerator: "ULID" })(options);
 
@@ -97,7 +102,8 @@ describe("SurrealDB Adapter Integration Tests", async () => {
       uuidTestSuite(),
       async (helpers: any) => {
         const db = await getTestSurrealInstance();
-        return await surrealTestSuite(db)(helpers);
+        const suite = await surrealTestSuite(db)();
+        return await suite()(helpers);
       },
     ],
 
@@ -111,13 +117,4 @@ describe("SurrealDB Adapter Integration Tests", async () => {
    * Register the tests within the Vitest runner.
    */
   execute();
-
-  /**
-   * Cleanup logic performed after the entire test run finishes.
-   */
-  afterAll(async () => {
-    const db = await getTestSurrealInstance();
-    // await db.query(`REMOVE DATABASE IF EXISTS suite`);
-    await db.close();
-  });
 });

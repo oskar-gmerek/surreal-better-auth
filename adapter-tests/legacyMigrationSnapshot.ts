@@ -8,9 +8,10 @@ export async function acquireLegacyRecoveryFixture() {
   const owned = await startOwnedSurreal();
   fixtures.set(owned, undefined);
   const close = owned.close;
-  owned.close = async () => {
+  let closing: Promise<void> | undefined;
+  owned.close = () => {
     fixtures.delete(owned);
-    await close();
+    return (closing ??= close());
   };
   return owned;
 }
@@ -22,8 +23,9 @@ async function bounded<T>(owned: Owned, operation: () => Promise<T>): Promise<T>
       operation(),
       new Promise<never>((_, reject) => {
         timer = setTimeout(() => {
-          void owned.close();
-          reject(new Error("Synthetic recovery I/O timed out"));
+          void owned
+            .close()
+            .then(() => reject(new Error("Synthetic recovery I/O timed out")), reject);
         }, 10000);
       }),
     ]);

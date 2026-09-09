@@ -1,6 +1,7 @@
 import { access } from "node:fs/promises";
 import { RecordId } from "surrealdb";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
+import { createServer } from "node:net";
 import {
   acquireLegacyRecoveryFixture,
   restoreLegacyFixture,
@@ -34,6 +35,36 @@ it("cleans an acquired recovery fixture when rehearsal fails", async () => {
   ).rejects.toThrow("synthetic rehearsal failure");
   await expect(access(owned.storage)).rejects.toThrow();
   await expect(restoreLegacyFixture(owned)).rejects.toThrow("acquired legacy fixture");
+}, 30000);
+
+it("awaits owned teardown and invalidates recovery after an I/O timeout", async () => {
+  const owned = await acquireLegacyRecoveryFixture();
+  const close = vi.spyOn(owned, "close");
+  try {
+    await owned.bootstrap.query("DEFINE TABLE user SCHEMAFULL; DEFINE TABLE account SCHEMAFULL;");
+    await snapshotLegacyFixture(owned);
+    // Inject a stalled import only; acquisition, snapshot, table removal and cleanup are real.
+    vi.spyOn(owned.bootstrap, "import").mockImplementation(() => new Promise(() => {}));
+    await expect(restoreLegacyFixture(owned)).rejects.toThrow("Synthetic recovery I/O timed out");
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(owned.close()).toBe(close.mock.results[0].value);
+    await expect(access(owned.storage)).rejects.toThrow();
+    await expect(restoreLegacyFixture(owned)).rejects.toThrow("acquired legacy fixture");
+    await expect(snapshotLegacyFixture(owned)).rejects.toThrow("acquired legacy fixture");
+    // Rebinding proves the acquired child has exited before timeout completion.
+    const probe = createServer();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        probe.once("error", reject);
+        probe.listen(Number(new URL(owned.endpoint).port), "127.0.0.1", resolve);
+      });
+    } finally {
+      if (probe.listening) await new Promise<void>((resolve) => probe.close(() => resolve()));
+    }
+  } finally {
+    await owned.close();
+    vi.restoreAllMocks();
+  }
 }, 30000);
 
 it("restores a schema-inclusive export after partial credential conversion fails", async () => {

@@ -4,7 +4,9 @@ This proposed string-only account identity change is breaking for legacy
 record-valued credential `accountId` fields. The adapter does **not** migrate
 existing data. This guide describes a bounded offline recipe demonstrated only on
 fresh synthetic fixtures, not an approved production migration or release.
-Maintainer compatibility agreement remains unresolved (issue #36).
+This is proposed branch behavior, not a fix already published in 2.0.0.
+Maintainer compatibility agreement remains unresolved
+([issue #36](https://github.com/oskar-gmerek/surreal-better-auth/issues/36)).
 
 ## Operator gates: stop if any cannot be established
 
@@ -123,7 +125,7 @@ The integration tests use SurrealDB **3.2.3**, SDK **2.0.8** and locked Better A
 **1.7.2**. Each migration fixture owns a separate authenticated server, process,
 namespace/database and temporary storage. Snapshot/restore uses SQL export/import
 of old SCHEMAFULL tables, fields, indexes and rows, preserving exact typed record
-components. The accepted `legacyMigrationRecovery.test.ts` additionally exercises
+components. `legacyMigrationRecovery.test.ts` additionally exercises
 recovery I/O timeout cleanup and rejects unowned/closed contexts.
 
 Exports set `users: false` and `accesses: false`: this is **not** a backup of

@@ -102,7 +102,8 @@ describe("SurrealDB Adapter Integration Tests", async () => {
       uuidTestSuite(),
       async (helpers: any) => {
         const db = await getTestSurrealInstance();
-        return await surrealTestSuite(db)(helpers);
+        const suite = await surrealTestSuite(db)();
+        return await suite()(helpers);
       },
     ],
 

@@ -9,7 +9,6 @@ import {
   type BoundQuery,
   Features,
   raw,
-  RecordId,
   surql,
   Table,
   type Surreal,
@@ -17,11 +16,10 @@ import {
   type Values,
 } from "surrealdb";
 import {
-  cleanIdPart,
   createWhereBuilder,
-  extractCleanId,
+  extractIdentityId,
   formatRecordIdOutput,
-  getSpecialReferenceModel,
+  getIdentityTarget,
   logSurrealQuery,
   toRecordId,
   unwrapResult,
@@ -53,7 +51,6 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
         getFieldAttributes,
         getModelName,
         validTables,
-        schema,
       );
 
       /**
@@ -155,37 +152,44 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
        */
       const transformDataForDB = (model: string, data: Record<string, any>) => {
         const transformed = { ...data };
-        const currentDbTable = getModelName(model);
-
         for (const key in transformed) {
           const value = transformed[key];
-          if (value === undefined) continue;
-
-          const attr = getFieldAttributes({ field: key, model });
-
-          let fallbackTable = getSpecialReferenceModel(
-            currentDbTable,
+          const target = getIdentityTarget(
+            model,
             key,
+            getFieldName,
+            getFieldAttributes,
             getModelName,
-            schema,
-            transformed,
           );
-
-          if (
-            !fallbackTable &&
-            (key === "id" ||
-              attr?.references?.field === "id" ||
-              (attr?.references && !attr.references.field))
-          ) {
-            const refModel = attr?.references?.model;
-            fallbackTable = refModel ? getModelName(refModel) : currentDbTable;
-          }
-
-          if (value !== null) {
-            transformed[key] = toRecordId(value, validTables, fallbackTable);
+          if (target && value !== null && value !== undefined) {
+            transformed[key] = Array.isArray(value)
+              ? value.map((item) => toRecordId(item, validTables, target))
+              : toRecordId(value, validTables, target);
           }
         }
         return transformed;
+      };
+
+      const transformOutput = (model: string, value: any): any => {
+        if (Array.isArray(value)) return value.map((item) => transformOutput(model, item));
+        if (!value) return value;
+        return Object.fromEntries(
+          Object.entries(value).map(([field, item]) => {
+            const target = getIdentityTarget(
+              model,
+              field,
+              getFieldName,
+              getFieldAttributes,
+              getModelName,
+            );
+            const decoded = target
+              ? Array.isArray(item)
+                ? item.map((id) => extractIdentityId(id, target))
+                : extractIdentityId(item, target)
+              : item;
+            return [field, formatRecordIdOutput(decoded)];
+          }),
+        );
       };
 
       /**
@@ -269,11 +273,14 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
             }
           }
 
-          const allFetched = formatRecordIdOutput(Array.isArray(joinedRes) ? joinedRes : []);
+          const allFetched = transformOutput(
+            joinedModel,
+            Array.isArray(joinedRes) ? joinedRes : [],
+          );
 
           const grouped = new Map<any, any[]>();
           for (const item of allFetched) {
-            const keyVal = String(extractCleanId(item[foreignFieldName], validTables));
+            const keyVal = String(item[foreignFieldName]);
             if (!grouped.has(keyVal)) {
               grouped.set(keyVal, []);
             }
@@ -287,7 +294,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
               continue;
             }
 
-            const cleanLocalKey = String(extractCleanId(localVal, validTables));
+            const cleanLocalKey = String(localVal);
             let matches = grouped.get(cleanLocalKey) || [];
 
             if (joinOptions.limit && !isUnique) {
@@ -314,24 +321,17 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           const { id: _, ...restData } = data;
 
           function buildCreateQuery() {
-            if (providedId && providedId !== "__surreal__") {
-              const idStr = String(providedId);
-              if (idStr.includes(":")) {
-                const colonIdx = idStr.indexOf(":");
-                const tb = idStr.substring(0, colonIdx);
-                const rawId = cleanIdPart(idStr.substring(colonIdx + 1));
-                return surql`CREATE ${new RecordId(tb, rawId)}`;
-              }
-              return surql`CREATE ${new RecordId(actualTableName, cleanIdPart(idStr))}`;
+            if (providedId !== undefined && providedId !== null) {
+              return surql`CREATE ${toRecordId(providedId, validTables, actualTableName)}`;
             }
 
             switch (idGenerator) {
               case "ULID":
                 return surql`CREATE type::record(${actualTableName}, rand::ulid())`;
               case "UUIDv4":
-                return surql`CREATE type::record(${actualTableName}, rand::uuid::v4())`;
+                return surql`CREATE type::record(${actualTableName}, <string>rand::uuid::v4())`;
               case "UUIDv7":
-                return surql`CREATE type::record(${actualTableName}, rand::uuid())`;
+                return surql`CREATE type::record(${actualTableName}, <string>rand::uuid())`;
               case "guid":
                 return surql`CREATE type::record(${actualTableName}, rand::id())`;
               default:
@@ -347,7 +347,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
 
           const result = unwrapResult<any[]>(rawRes);
           const item = Array.isArray(result) ? result[0] : result;
-          return formatRecordIdOutput(item);
+          return transformOutput(model, item);
         },
 
         async findOne({ model, where, select, join }) {
@@ -403,7 +403,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           }
 
           if (!item) return null;
-          item = formatRecordIdOutput(item);
+          item = transformOutput(model, item);
 
           if (join) {
             const withJoins = await resolveJoins([item], model, join);
@@ -465,7 +465,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           try {
             const rawRes = await client.query(surrealql);
             const result = unwrapResult<any[]>(rawRes);
-            list = formatRecordIdOutput(Array.isArray(result) ? result : []);
+            list = transformOutput(model, Array.isArray(result) ? result : []);
           } catch (err: any) {
             if (
               err?.kind === "NotFound" ||
@@ -502,7 +502,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           const rawRes = await client.query(surrealql);
           const result = unwrapResult<any[]>(rawRes);
           const item = (Array.isArray(result) ? result[0] : result) || null;
-          return formatRecordIdOutput(item);
+          return transformOutput(model, item);
         },
 
         async updateMany({ model, where, update: values }) {
@@ -623,7 +623,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
             const rawRes = await client.query(surrealql);
             const result = unwrapResult<any[]>(rawRes);
             const item = (Array.isArray(result) ? result[0] : result) || null;
-            return formatRecordIdOutput(item);
+            return transformOutput(model, item);
           } catch (err: any) {
             if (
               err?.kind === "NotFound" ||
@@ -679,7 +679,7 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
           const rawRes = await client.query(surrealql);
           const result = unwrapResult<any[]>(rawRes);
           const item = (Array.isArray(result) ? result[0] : result) || null;
-          return formatRecordIdOutput(item);
+          return transformOutput(model, item);
         },
 
         async createSchema({ file, tables }) {
@@ -689,14 +689,13 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
             getModelName,
             getFieldName,
             getReferencedModel: (tableName, fieldName) => {
-              const defaultModel = getDefaultModelName(tableName);
-              const defaultField = getFieldName({ model: defaultModel, field: fieldName });
-              const defaultModelDef = schema[defaultModel];
-              const fieldDef = defaultModelDef?.fields?.[defaultField];
-              if (fieldDef?.references?.model) {
-                return getModelName(fieldDef.references.model);
-              }
-              return null;
+              return getIdentityTarget(
+                tableName,
+                fieldName,
+                getFieldName,
+                getFieldAttributes,
+                getModelName,
+              );
             },
             schemaMode: config?.schemaMode ?? "schemafull",
             usePlural: config?.usePlural ?? false,
@@ -719,7 +718,8 @@ export const surrealdbAdapter = (db: Surreal, config?: SurrealDBAdapterConfig) =
       supportsArrays: true,
       supportsNumericIds: false,
       supportsJSON: true,
-      customIdGenerator: config?.idGenerator ? () => "__surreal__" : undefined,
+      // BA removes the empty generated value before calling create; no public ID is reserved.
+      customIdGenerator: config?.idGenerator ? () => "" : undefined,
 
       customTransformOutput({ data }) {
         return formatRecordIdOutput(data);

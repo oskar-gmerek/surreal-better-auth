@@ -1,4 +1,4 @@
-import type { BetterAuthDBSchema, Where } from "better-auth";
+import type { Where } from "better-auth";
 import { raw, type BoundQuery, RecordId, StringRecordId, surql, DateTime } from "surrealdb";
 import type { SurrealDBAdapterConfig } from "./types";
 
@@ -22,171 +22,75 @@ export function unwrapResult<T = any>(rawResult: any): T {
   return first as T;
 }
 
-export function cleanIdPart(id: string): string {
-  let clean = id.trim();
-  while (clean.startsWith("⟨") && clean.endsWith("⟩")) {
-    clean = clean.slice(1, -1);
+/** Only schema identity positions may decode native records. */
+export function extractIdentityId(value: any, expectedTable: string): any {
+  if (value instanceof StringRecordId) {
+    throw new Error(
+      "StringRecordId identity inputs are unsupported; use an opaque string or RecordId",
+    );
   }
-  return clean;
-}
-
-/**
- * Deserializes database values to standard JavaScript types.
- * Matches the official SurrealDB adapter standard: extracts `val.id` from RecordId.
- */
-export function formatRecordIdOutput(val: any): any {
-  if (val === null || val === undefined) return val;
-
-  if (val instanceof RecordId) {
-    return typeof val.id === "string" ? cleanIdPart(val.id) : String(val.id);
-  }
-
-  if (val instanceof StringRecordId) {
-    const str = val.toString();
-    const colonIdx = str.indexOf(":");
-    return colonIdx >= 0 ? cleanIdPart(str.slice(colonIdx + 1)) : cleanIdPart(str);
-  }
-
-  if (val instanceof DateTime) {
-    return val.toDate();
-  }
-
-  if (val instanceof Date) {
-    return val;
-  }
-
-  if (val instanceof Uint8Array || (typeof Buffer !== "undefined" && Buffer.isBuffer(val))) {
-    return val;
-  }
-
-  if (Array.isArray(val)) {
-    return val.map(formatRecordIdOutput);
-  }
-
-  if (typeof val === "object") {
-    if (val.constructor && val.constructor.name !== "Object") {
-      return val;
+  if (value instanceof RecordId) {
+    if (value.table.name !== expectedTable || typeof value.id !== "string") {
+      throw new Error("Identity RecordId must have the expected table and a string ID component");
     }
-    const cleaned: Record<string, any> = {};
-    for (const key of Object.keys(val)) {
-      cleaned[key] = formatRecordIdOutput(val[key]);
-    }
-    return cleaned;
+    return value.id;
   }
-
-  return val;
-}
-
-export function extractCleanId(val: any, validTables?: Set<string>): any {
-  if (val instanceof RecordId) {
-    return typeof val.id === "string" ? cleanIdPart(val.id) : String(val.id);
-  }
-
-  if (val instanceof StringRecordId) {
-    const str = val.toString();
-    const colonIdx = str.indexOf(":");
-    const rawVal = colonIdx >= 0 ? str.slice(colonIdx + 1) : str;
-    return cleanIdPart(rawVal);
-  }
-
-  if (typeof val === "string" && val.includes(":") && validTables) {
-    const colonIdx = val.indexOf(":");
-    const prefix = val.slice(0, colonIdx);
-    if (validTables.has(prefix)) {
-      return cleanIdPart(val.slice(colonIdx + 1));
-    }
-  }
-
-  return val;
-}
-
-export function toRecordId(
-  value: any,
-  validTables: Set<string>,
-  fallbackTable?: string | null,
-): any {
-  if (value instanceof RecordId || value instanceof StringRecordId) return value;
-
-  if (typeof value === "string" && value.length > 0) {
-    const clean = cleanIdPart(value);
-    const colonIndex = clean.indexOf(":");
-
-    if (colonIndex > 0) {
-      const tablePrefix = clean.substring(0, colonIndex);
-      const rawId = clean.substring(colonIndex + 1);
-      if (validTables.has(tablePrefix)) {
-        return new RecordId(tablePrefix, cleanIdPart(rawId));
-      }
-      return value;
-    }
-
-    if (fallbackTable && colonIndex === -1 && validTables.has(fallbackTable)) {
-      return new RecordId(fallbackTable, clean);
-    }
-  }
-
   return value;
 }
 
-export const getSpecialReferenceModel = (
-  dbModelName: string,
+/** Convert dates without reinterpreting application strings or JSON records. */
+export function formatRecordIdOutput(val: any): any {
+  if (val instanceof DateTime) return val.toDate();
+  if (Array.isArray(val)) return val.map(formatRecordIdOutput);
+  if (val && Object.getPrototypeOf(val) === Object.prototype) {
+    return Object.fromEntries(
+      Object.entries(val).map(([key, value]) => [key, formatRecordIdOutput(value)]),
+    );
+  }
+  return val;
+}
+
+export function toRecordId(value: any, validTables: Set<string>, targetTable?: string | null): any {
+  if (!targetTable) return value;
+  if (!validTables.has(targetTable)) throw new Error("Unknown identity target table");
+  const id = extractIdentityId(value, targetTable);
+  return typeof id === "string" ? new RecordId(targetTable, id) : id;
+}
+
+export function getIdentityTarget(
+  model: string,
   field: string,
-  getModelName: (m: string) => string,
-  schema: BetterAuthDBSchema,
-  data?: Record<string, any>,
-): string | null => {
-  if (schema.account && dbModelName === getModelName("account") && field === "accountId") {
-    const userModel = schema.user ? getModelName("user") : null;
-    if (data) {
-      return data.providerId === "credential" ? userModel : null;
-    }
-    return userModel;
-  }
-
-  if (schema.oauthAccessToken && schema.oauthConsent) {
-    const accessTokenTable = getModelName("oauthAccessToken");
-    const consentTable = getModelName("oauthConsent");
-
-    if (
-      (dbModelName === accessTokenTable || dbModelName === consentTable) &&
-      field === "clientId"
-    ) {
-      return schema.oauthApplication ? getModelName("oauthApplication") : null;
-    }
-  }
-
-  return null;
-};
+  getFieldName: GetFieldNameFn,
+  getFieldAttributes: (opts: { model: string; field: string }) => any,
+  getModelName: (model: string) => string,
+): string | null {
+  if (field === getFieldName({ model, field: "id" })) return getModelName(model);
+  const reference = getFieldAttributes({ model, field })?.references;
+  return reference && (!reference.field || reference.field === "id")
+    ? getModelName(reference.model)
+    : null;
+}
 
 export const createWhereBuilder = (
   getFieldName: (opts: { model: string; field: string }) => string,
   getFieldAttributes: (opts: { model: string; field: string }) => any,
   getModelName: (model: string) => string,
   validTables: Set<string>,
-  schema: BetterAuthDBSchema,
 ) => {
   return (where: Where[] | undefined | null, modelName: string): BoundQuery | null => {
     if (!where || where.length === 0) return null;
 
-    const dbModelName = getModelName(modelName);
-
     const buildCondition = (w: Where): BoundQuery => {
       const dbField = getFieldName({ field: w.field, model: modelName });
-      const attr = getFieldAttributes({ field: w.field, model: modelName });
       let val = w.value;
       const isInsensitive = (w as any).mode === "insensitive";
-
-      let targetModel = getSpecialReferenceModel(dbModelName, w.field, getModelName, schema);
-
-      if (
-        !targetModel &&
-        (w.field === "id" ||
-          attr?.references?.field === "id" ||
-          (attr?.references && !attr.references.field))
-      ) {
-        const refModel = attr?.references?.model;
-        targetModel = refModel ? getModelName(refModel) : dbModelName;
-      }
+      const targetModel = getIdentityTarget(
+        modelName,
+        dbField,
+        getFieldName,
+        getFieldAttributes,
+        getModelName,
+      );
 
       if (targetModel && val !== null && val !== undefined) {
         if (Array.isArray(val)) {

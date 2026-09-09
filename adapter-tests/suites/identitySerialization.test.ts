@@ -95,17 +95,12 @@ for (const layout of ["default", "mapped", "plural"] as const) {
         },
       });
     };
-    beforeEach(async (context) => {
+    beforeEach(async () => {
       for (const table of new Set([...Object.values(tables), "foreign", "user"]))
         await bootstrap.query(`REMOVE TABLE IF EXISTS ${table}`);
       const schema = await surrealdbAdapter(bootstrap, { usePlural: plural })(options)
         .createSchema!(options);
       await bootstrap.query(schema.code);
-      // Isolate mapped CRUD from the separately asserted generated-reference defect.
-      if (mapped && !context.task.name.startsWith("generated SCHEMAFULL"))
-        await bootstrap.query(
-          `DEFINE FIELD OVERWRITE ${fields.userId} ON ${tables.account} TYPE record<${tables.user}>`,
-        );
     });
 
     it("control: SCHEMAFULL setup and scoped CRUD", async () => {
@@ -305,11 +300,6 @@ for (const layout of ["default", "mapped", "plural"] as const) {
       ).rejects.toThrow();
     });
     it("generated SCHEMAFULL accountId rejects records", async () => {
-      // Repair only the independent mapped-reference DDL defect to reach accountId.
-      if (mapped)
-        await bootstrap.query(
-          `DEFINE FIELD OVERWRITE ${fields.userId} ON ${tables.account} TYPE record<${tables.user}>`,
-        );
       await seedUser("owner");
       await seedAccount("schema-control");
       await expect(
@@ -387,4 +377,15 @@ describe("typed record scope at supported conversion helper (not BA public strin
       });
     }
   }
+});
+
+it("typed conversion preserves string components and rejects textual SDK wrappers", () => {
+  const tables = new Set(["user"]);
+  for (const id of ["user:alice", " ⟨nested:⟨id⟩⟩ ", "__surreal__"]) {
+    expect(toRecordId(id, tables, "user")).toEqual(new RecordId("user", id));
+    expect(toRecordId(new RecordId("user", id), tables, "user")).toEqual(new RecordId("user", id));
+  }
+  expect(() => toRecordId(new StringRecordId("user:alice"), tables, "user")).toThrow(
+    "StringRecordId",
+  );
 });

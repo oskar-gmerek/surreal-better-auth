@@ -1,10 +1,10 @@
 import { expect } from "vitest";
 import { createTestSuite } from "@better-auth/test-utils/adapter";
-import { RecordId, StringRecordId, surql, DateTime, type Surreal } from "surrealdb";
+import { RecordId, surql, DateTime, type Surreal } from "surrealdb";
 
 /**
  * Integration test suite for SurrealDB-specific internals:
- * - Native RecordId graph pointers vs raw strings for polymorphic fields.
+ * - String account identities and native declared references.
  * - String safety against false-positive RecordId coercion.
  * - Native SurrealDB DateTime storage vs JavaScript Date deserialization.
  */
@@ -12,53 +12,56 @@ export const surrealTestSuite = (db: Surreal) => {
   return async () => {
     return createTestSuite("SurrealDB Native Engine Tests", {}, ({ adapter }) => {
       return {
-        "[01] Polymorphic accountId: should store credential as RecordId and OAuth as string":
-          async () => {
-            const user = await adapter.create({
-              model: "user",
-              data: {
-                name: "Test User",
-                email: `test-poly-${Date.now()}@edge.com`,
-                emailVerified: true,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              },
-            });
+        "[01] accountId: should store credential and OAuth as strings": async () => {
+          const user = await adapter.create({
+            model: "user",
+            data: {
+              name: "Test User",
+              email: `test-poly-${Date.now()}@edge.com`,
+              emailVerified: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
 
-            // Credential account: accountId is the User's ID -> must be stored as native RecordId
-            const acc1 = await adapter.create({
-              model: "account",
-              data: {
-                accountId: user.id,
-                providerId: "credential",
-                userId: user.id,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              },
-            });
+          // Credential account: accountId is the User's opaque string ID
+          const acc1 = await adapter.create({
+            model: "account",
+            data: {
+              accountId: user.id,
+              providerId: "credential",
+              issuer: "credential",
+              userId: user.id,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
 
-            // OAuth account: accountId is an external provider ID -> must be stored as string
-            const acc2 = await adapter.create({
-              model: "account",
-              data: {
-                accountId: "google:999",
-                providerId: "google",
-                userId: user.id,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              },
-            });
+          // OAuth account: accountId is an external provider ID -> must be stored as string
+          const acc2 = await adapter.create({
+            model: "account",
+            data: {
+              accountId: "google:999",
+              providerId: "google",
+              issuer: "https://accounts.google.com",
+              userId: user.id,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
 
-            const [acc1Res] = await db.query<[any[]]>(
-              surql`SELECT * FROM account WHERE id = ${new StringRecordId(acc1.id.toString())}`,
-            );
-            const [acc2Res] = await db.query<[any[]]>(
-              surql`SELECT * FROM account WHERE id = ${new StringRecordId(acc2.id.toString())}`,
-            );
+          const [acc1Res] = await db.query<[any[]]>(
+            surql`SELECT * FROM account WHERE id = ${new RecordId("account", acc1.id)}`,
+          );
+          const [acc2Res] = await db.query<[any[]]>(
+            surql`SELECT * FROM account WHERE id = ${new RecordId("account", acc2.id)}`,
+          );
 
-            expect(acc1Res[0].accountId).toBeInstanceOf(RecordId);
-            expect(typeof acc2Res[0].accountId).toBe("string");
-          },
+          expect(acc1Res[0].accountId).toBe(user.id);
+          expect(acc2Res[0].accountId).toBe("google:999");
+          expect(acc1Res[0].userId).toEqual(new RecordId("user", user.id));
+          expect(acc2Res[0].userId).toEqual(new RecordId("user", user.id));
+        },
 
         "[02] toRecordId safety: should not convert non-table strings with colons to RecordId":
           async () => {
@@ -76,7 +79,7 @@ export const surrealTestSuite = (db: Surreal) => {
             });
 
             const [dbUser] = await db.query<[any[]]>(
-              surql`SELECT name FROM user WHERE id = ${new StringRecordId(user.id)}`,
+              surql`SELECT name FROM user WHERE id = ${new RecordId("user", user.id)}`,
             );
 
             expect(typeof dbUser[0].name).toBe("string");
@@ -115,7 +118,7 @@ export const surrealTestSuite = (db: Surreal) => {
 
             // Raw record in SurrealDB must be a native DateTime object
             const [dbResult] = await db.query<[any[]]>(
-              surql`SELECT expiresAt FROM session WHERE id = ${new StringRecordId(session.id)}`,
+              surql`SELECT expiresAt FROM session WHERE id = ${new RecordId("session", session.id)}`,
             );
 
             expect(dbResult[0].expiresAt).toBeInstanceOf(DateTime);

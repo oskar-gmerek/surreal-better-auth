@@ -1,12 +1,18 @@
 import { startOwnedSurreal } from "./ownedSurreal";
 
 type Owned = Awaited<ReturnType<typeof startOwnedSurreal>>;
-const fixtures = new WeakMap<Owned, string | undefined>();
+const fixtures = new WeakMap<Owned, { tables: readonly string[]; snapshot?: string }>();
+const fixtureTables = {
+  default: ["account", "user"],
+  mapped: ["identity_login", "identity_person"],
+  plural: ["accounts", "users"],
+} as const;
 
 /** Acquires a separate synthetic fixture; shared global setup is never registered. */
-export async function acquireLegacyRecoveryFixture() {
+export async function acquireLegacyRecoveryFixture(layout: keyof typeof fixtureTables = "default") {
+  if (!Object.hasOwn(fixtureTables, layout)) throw new Error("Unknown synthetic fixture layout");
   const owned = await startOwnedSurreal();
-  fixtures.set(owned, undefined);
+  fixtures.set(owned, { tables: fixtureTables[layout] });
   const close = owned.close;
   let closing: Promise<void> | undefined;
   owned.close = () => {
@@ -34,8 +40,14 @@ async function bounded<T>(owned: Owned, operation: () => Promise<T>): Promise<T>
   }
 }
 
-export async function snapshotLegacyFixture(owned: Owned) {
-  if (!fixtures.has(owned)) throw new Error("Recovery requires an acquired legacy fixture");
+export async function snapshotLegacyFixture(owned: Owned, tables?: readonly string[]) {
+  const registered = fixtures.get(owned);
+  if (!registered) throw new Error("Recovery requires an acquired legacy fixture");
+  if (
+    tables &&
+    (tables.length !== 2 || tables.some((table, index) => table !== registered.tables[index]))
+  )
+    throw new Error("Migration tables do not match acquired fixture layout");
   // Deliberately exclude identities: retain the fixture's database and scoped user.
   const snapshot = await bounded(owned, async () => {
     const response = await owned.bootstrap
@@ -63,16 +75,18 @@ export async function snapshotLegacyFixture(owned: Owned) {
       reader.releaseLock();
     }
   });
-  fixtures.set(owned, snapshot);
+  const fixture = fixtures.get(owned);
+  if (!fixture) throw new Error("Recovery fixture closed during snapshot");
+  fixture.snapshot = snapshot;
   return snapshot;
 }
 
 /** Restore only this fixture's two known tables, not its database or credentials. */
 export async function restoreLegacyFixture(owned: Owned) {
-  const snapshot = fixtures.get(owned);
-  if (!snapshot) throw new Error("Recovery requires an acquired legacy fixture snapshot");
+  const fixture = fixtures.get(owned);
+  if (!fixture?.snapshot) throw new Error("Recovery requires an acquired legacy fixture snapshot");
   await bounded(owned, async () => {
-    await owned.bootstrap.query("REMOVE TABLE account; REMOVE TABLE user;");
-    await owned.bootstrap.import(snapshot);
+    await owned.bootstrap.query(fixture.tables.map((table) => `REMOVE TABLE ${table};`).join("\n"));
+    await owned.bootstrap.import(fixture.snapshot!);
   });
 }

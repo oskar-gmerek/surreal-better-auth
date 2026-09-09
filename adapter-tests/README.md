@@ -36,3 +36,34 @@ management is included in the adapter package.
 The harness smoke covers synthetic CRUD and scope denial against unchanged
 adapter source. It does not establish identity regression, full-suite, migration,
 or external OAuth-provider correctness.
+
+## Identity serialization regressions
+
+`suites/identitySerialization.test.ts` is collected
+by the normal Vitest configuration. Run it with `ownedSurreal.test.ts` to retain
+harness controls. These tests intentionally assert the proposed lossless identity
+policy and are red against the original adapter; they are not `fails`/skipped tests.
+
+The suite uses the frozen Better Auth/core **1.7.2** factory: caller IDs require
+`forceAllowId`; its ID input transform removes an empty string before the adapter
+sees it. Empty input therefore tests factory generation, not preservation of an
+unsupported public empty ID. Literal `__surreal__` is nonempty and must survive.
+Missing IDs exercise BA default/disabled/UUID and all advertised adapter generators.
+BA UUID mode only permits UUID caller IDs; arbitrary opaque IDs use default mode.
+Numeric/compound IDs and typed records are not promised by BA's public string API.
+Wrong-table `RecordId`/`StringRecordId` inputs are tested only at `toRecordId`, which
+explicitly accepts those SDK types. No email-derived identity is used.
+
+Each primary CRUD operation and reference predicate is independent, seeded with
+explicit table-scoped SDK records where needed so broken writes cannot mask reads.
+Raw persisted values and generated SCHEMAFULL rejection assertions complement
+public output assertions. Default, mapped tables/fields, and plural layouts run
+separately. A bootstrap-only mapped `userId` field override isolates CRUD from the
+original generator's string-reference DDL defect; a separate unmodified-schema
+case asserts that defect. Account fixtures include BA 1.7.2's required `issuer`;
+provider fixtures use distinct issuers to avoid confusing its additional unique
+index with provider/account uniqueness. Plain account/session writes and raw
+known-prefix strings are passing setup controls for type-conversion rejections.
+
+This is synthetic local evidence, not Better Auth 1.7.3, Google runtime, full-suite,
+migration, application transport, or upstream policy acceptance evidence.

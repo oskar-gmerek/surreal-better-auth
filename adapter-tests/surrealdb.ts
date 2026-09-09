@@ -1,19 +1,29 @@
-import { escapeIdent, Surreal } from "surrealdb";
+import { Surreal } from "surrealdb";
 import { WebSocket } from "ws";
+import { inject } from "vitest";
+import { assertOwnedEndpoint } from "./ownedSurreal";
+import type {} from "./globalSetup";
 
-let db: Surreal;
-
-export const getTestSurrealInstance = async () => {
-  if (!db) {
-    db = new Surreal({ websocketImpl: WebSocket as any });
-    process.env.BETTER_AUTH_URL = "http://localhost:3000";
-    const surrealNS = "test";
-    const surrealDB = "suite";
-    await db.connect("ws://127.0.0.1:8000/rpc");
-    await db.signin({ username: "root", password: "root" });
-    await db.use({ namespace: surrealNS, database: surrealDB });
-    await db.query(`REMOVE DATABASE ${escapeIdent(surrealDB)};`);
-    await db.query(`DEFINE DATABASE ${escapeIdent(surrealDB)};`);
+let adapter: Promise<Surreal> | undefined;
+let bootstrap: Promise<Surreal> | undefined;
+async function connect(role: "adapterAuth" | "bootstrapAuth") {
+  const owned = inject("surreal");
+  if (!owned) throw new Error("Run adapter tests with their owned global setup");
+  assertOwnedEndpoint(owned.endpoint, Number(new URL(owned.endpoint).port));
+  const db = new Surreal({ websocketImpl: WebSocket as any });
+  try {
+    await db.connect(owned.endpoint, { reconnect: false });
+    await db.signin(owned[role]);
+    await db.use({ namespace: owned.namespace, database: owned.database });
+    return db;
+  } catch (error) {
+    await db.close();
+    throw error;
   }
-  return db;
+}
+export const getTestSurrealInstance = () => (adapter ??= connect("adapterAuth"));
+export const getTestBootstrapInstance = () => (bootstrap ??= connect("bootstrapAuth"));
+export const closeTestSurrealInstance = async () => {
+  await Promise.allSettled([adapter, bootstrap].map(async (client) => (await client)?.close()));
+  adapter = bootstrap = undefined;
 };
